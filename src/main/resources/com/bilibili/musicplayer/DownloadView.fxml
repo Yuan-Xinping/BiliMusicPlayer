@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Priority?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<VBox fx:id="rootView" alignment="TOP_CENTER" spacing="20" styleClass="main-content" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.DownloadController">
+    <padding>
+        <Insets top="20" left="20" right="20" bottom="20"/>
+    </padding>
+    <Label text="下载管理" styleClass="view-title"/>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.bilibili.musicplayer.DownloadView"
-            prefHeight="400.0" prefWidth="600.0">
+    <HBox alignment="CENTER_LEFT" spacing="10">
+        <Label text="B站链接/BV号:" styleClass="status-label"/>
+        <TextField fx:id="urlField" promptText="请输入B站视频链接或BV号" HBox.hgrow="ALWAYS"/>
+        <!-- 更改了原有的downloadButton，并新增一个按钮 -->
+        <Button fx:id="downloadByUrlButton" text="按链接下载" onAction="#handleDownloadByUrlClick"/>
+        <Button fx:id="downloadByBvButton" text="按BV号下载" onAction="#handleDownloadByBvClick"/>
+    </HBox>
 
-</AnchorPane>
+    <ProgressBar fx:id="progressBar" prefWidth="400" progress="0.0"/>
+
+    <Label fx:id="statusLabel" text="等待输入链接..." styleClass="status-label"/>
+
+    <Label text="这里是下载管理界面" styleClass="status-label"/>
+</VBox>

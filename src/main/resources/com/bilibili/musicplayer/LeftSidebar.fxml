@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Button?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="$CONTROLLER_NAME$"
-            prefHeight="400.0" prefWidth="600.0" >
-
-</AnchorPane>
+<VBox fx:id="rootView" alignment="TOP_CENTER" spacing="10" styleClass="sidebar" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.LeftSidebarController">
+    <Button text="我的音乐" onAction="#handleLibraryClick" styleClass="sidebar-button"/>
+    <Button text="下载管理" onAction="#handleDownloadClick" styleClass="sidebar-button"/>
+    <Button text="设置" onAction="#handleSettingsClick" styleClass="sidebar-button"/>
+</VBox>

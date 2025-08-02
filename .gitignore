@@ -1,13 +1,15 @@
+# Maven build output
 target/
+
+# Maven wrapper (keep this specific file if it's part of your project setup)
 !.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+
+# --- IDE specific files ---
 
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+# Ignore the entire .idea directory in the root
+.idea/
+# These files are typically generated outside the .idea directory but are IDE-specific
 *.iws
 *.iml
 *.ipr
@@ -28,11 +30,28 @@ target/
 /nbdist/
 /.nb-gradle/
 build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# Removed: !**/src/main/**/build/  (Assuming you want to ignore all build directories)
+# Removed: !**/src/test/**/build/  (Assuming you want to ignore all build directories)
 
 ### VS Code ###
 .vscode/
 
 ### Mac OS ###
 .DS_Store
+
+# --- Other common exclusions (optional, but good practice) ---
+# Log files
+*.log
+logs/
+
+# Compiled output (if not covered by target/)
+*.class
+*.jar
+*.war
+*.ear
+
+# Package manager files (e.g., node_modules for JavaScript projects)
+# node_modules/
+
+# OS generated files
+Thumbs.db

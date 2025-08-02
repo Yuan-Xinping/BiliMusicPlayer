@@ -1,0 +1,28 @@
+/* src/main/resources/css/style.css */
+.root {
+    -fx-background-color: #282828; /* 深灰色背景 */
+}
+/* 确保你的FXML根元素有这个styleClass，或者直接设置-fx-background-color */
+.sidebar {
+    -fx-background-color: #000000;
+}
+.sidebar-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #b3b3b3;
+    -fx-font-size: 16px;
+}
+.main-content {
+    -fx-background-color: #121212;
+}
+.view-title {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+.status-label {
+    -fx-text-fill: #b3b3b3;
+    -fx-font-size: 14px;
+}
+.playback-bar {
+    -fx-background-color: #181818;
+}
