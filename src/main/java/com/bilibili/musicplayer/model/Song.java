@@ -14,8 +14,9 @@ public class Song {
     private String coverUrl; // 封面图片的URL
     private long durationSeconds; // 时长，单位秒
     private LocalDateTime downloadDate; // 下载日期
+    private boolean isFavorite; // 新增字段：是否喜欢
 
-    public Song(String id, String title, String artist, String bilibiliUrl, String localFilePath, String coverUrl, long durationSeconds, LocalDateTime downloadDate) {
+    public Song(String id, String title, String artist, String bilibiliUrl, String localFilePath, String coverUrl, long durationSeconds, LocalDateTime downloadDate, boolean isFavorite) {
         this.id = id;
         this.title = title;
         this.artist = artist;
@@ -24,73 +25,35 @@ public class Song {
         this.coverUrl = coverUrl;
         this.durationSeconds = durationSeconds;
         this.downloadDate = downloadDate;
+        this.isFavorite = isFavorite; // 初始化
+    }
+
+    // 现有构造函数可以重载，或者只保留一个最完整的
+    public Song(String id, String title, String artist, String bilibiliUrl, String localFilePath, String coverUrl, long durationSeconds, LocalDateTime downloadDate) {
+        this(id, title, artist, bilibiliUrl, localFilePath, coverUrl, durationSeconds, downloadDate, false); // 默认不收藏
     }
 
     // --- Getters ---
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public String getTitle() { return title; }
+    public String getArtist() { return artist; }
+    public String getBilibiliUrl() { return bilibiliUrl; }
+    public String getLocalFilePath() { return localFilePath; }
+    public String getCoverUrl() { return coverUrl; }
+    public long getDurationSeconds() { return durationSeconds; }
+    public LocalDateTime getDownloadDate() { return downloadDate; }
+    public boolean isFavorite() { return isFavorite; } // 新增getter
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getArtist() {
-        return artist;
-    }
-
-    public String getBilibiliUrl() {
-        return bilibiliUrl;
-    }
-
-    public String getLocalFilePath() {
-        return localFilePath;
-    }
-
-    public String getCoverUrl() {
-        return coverUrl;
-    }
-
-    public long getDurationSeconds() {
-        return durationSeconds;
-    }
-
-    public LocalDateTime getDownloadDate() {
-        return downloadDate;
-    }
-
-    // --- Setters (如果需要修改属性，可以添加) ---
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public void setArtist(String artist) {
-        this.artist = artist;
-    }
-
-    public void setBilibiliUrl(String bilibiliUrl) {
-        this.bilibiliUrl = bilibiliUrl;
-    }
-
-    public void setLocalFilePath(String localFilePath) {
-        this.localFilePath = localFilePath;
-    }
-
-    public void setCoverUrl(String coverUrl) {
-        this.coverUrl = coverUrl;
-    }
-
-    public void setDurationSeconds(long durationSeconds) {
-        this.durationSeconds = durationSeconds;
-    }
-
-    public void setDownloadDate(LocalDateTime downloadDate) {
-        this.downloadDate = downloadDate;
-    }
+    // --- Setters ---
+    public void setId(String id) { this.id = id; }
+    public void setTitle(String title) { this.title = title; }
+    public void setArtist(String artist) { this.artist = artist; }
+    public void setBilibiliUrl(String bilibiliUrl) { this.bilibiliUrl = bilibiliUrl; }
+    public void setLocalFilePath(String localFilePath) { this.localFilePath = localFilePath; }
+    public void setCoverUrl(String coverUrl) { this.coverUrl = coverUrl; }
+    public void setDurationSeconds(long durationSeconds) { this.durationSeconds = durationSeconds; }
+    public void setDownloadDate(LocalDateTime downloadDate) { this.downloadDate = downloadDate; }
+    public void setFavorite(boolean favorite) { isFavorite = favorite; } // 新增setter
 
     @Override
     public String toString() {
@@ -100,13 +63,12 @@ public class Song {
         return title;
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Song song = (Song) o;
-        return Objects.equals(id, song.id); // 假设ID是唯一的标识
+        return Objects.equals(id, song.id);
     }
 
     @Override

@@ -1,98 +1,122 @@
 // src/main/java/com/bilibili/musicplayer/controller/LibraryController.java
 package com.bilibili.musicplayer.controller;
 
+import com.bilibili.musicplayer.model.Playlist;
 import com.bilibili.musicplayer.model.Song;
-import com.bilibili.musicplayer.service.MediaPlayerService; // 导入 MediaPlayerService
+import com.bilibili.musicplayer.service.MediaPlayerService;
+import com.bilibili.musicplayer.service.PlaylistDAO;
 import com.bilibili.musicplayer.service.SongDAO;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList; // 导入 FilteredList
-import javafx.collections.transformation.SortedList;   // 导入 SortedList
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField; // 导入 TextField
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import javafx.scene.layout.GridPane;
+import javafx.geometry.Insets;
+import javafx.application.Platform;
+import javafx.scene.Parent;
 
+import java.io.File;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.Predicate;
 
 public class LibraryController implements Initializable {
 
-    @FXML private VBox rootView;
+    @FXML private HBox rootView;
+    @FXML private VBox librarySidebar;
+    @FXML private Button btnLocalMusic;
+    @FXML private Button btnFavorites;
+    @FXML private Button btnCreatePlaylist;
+    @FXML private ListView<Playlist> playlistListView;
+
+    @FXML private Label currentViewTitle;
     @FXML private TableView<Song> songTableView;
     @FXML private Label statusLabel;
-    @FXML private TextField searchField; // 绑定搜索框
+    @FXML private TextField searchField;
 
     private SongDAO songDAO;
-    private ObservableList<Song> masterData; // 存储所有歌曲的原始列表
-    private FilteredList<Song> filteredData; // 用于过滤的列表
-    private SortedList<Song> sortedData;     // 用于排序的列表
+    private PlaylistDAO playlistDAO;
+    private ObservableList<Song> masterData;
+    private FilteredList<Song> filteredData;
+    private SortedList<Song> sortedData;
 
     private MediaPlayerService mediaPlayerService;
+
+    // 当前选中的视图类型
+    private enum CurrentView {
+        LOCAL_MUSIC, FAVORITES, PLAYLIST
+    }
+    private CurrentView currentView = CurrentView.LOCAL_MUSIC;
+    private Playlist currentSelectedPlaylist = null;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         System.out.println("LibraryController initialized.");
         songDAO = new SongDAO();
-        masterData = FXCollections.observableArrayList(); // 初始化原始数据列表
+        playlistDAO = new PlaylistDAO();
+        masterData = FXCollections.observableArrayList();
 
-        // 1. 创建 FilteredList，初始显示所有数据
         filteredData = new FilteredList<>(masterData, p -> true);
-
-        // 2. 监听搜索框文本变化，更新过滤条件
-        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-            filteredData.setPredicate(song -> {
-                // 如果搜索框为空，显示所有歌曲
-                if (newValue == null || newValue.isEmpty()) {
-                    return true;
-                }
-
-                // 将搜索关键词转换为小写，进行不区分大小写的匹配
-                String lowerCaseFilter = newValue.toLowerCase();
-
-                // 匹配歌曲标题或艺术家
-                if (song.getTitle() != null && song.getTitle().toLowerCase().contains(lowerCaseFilter)) {
-                    return true; // 匹配标题
-                } else if (song.getArtist() != null && song.getArtist().toLowerCase().contains(lowerCaseFilter)) {
-                    return true; // 匹配艺术家
-                }
-                return false; // 不匹配
-            });
-        });
-
-        // 3. 创建 SortedList，并将其绑定到 TableView 的 comparator
         sortedData = new SortedList<>(filteredData);
         sortedData.comparatorProperty().bind(songTableView.comparatorProperty());
-
-        // 4. 将 SortedList 设置为 TableView 的数据源
         songTableView.setItems(sortedData);
 
-        // 双击播放逻辑
+        TableColumn<Song, Long> durationCol = null;
+        for (TableColumn<Song, ?> col : songTableView.getColumns()) {
+            if ("时长".equals(col.getText())) {
+                durationCol = (TableColumn<Song, Long>) col;
+                break;
+            }
+        }
+
+        if (durationCol != null) {
+            durationCol.setCellValueFactory(new PropertyValueFactory<>("durationSeconds"));
+            durationCol.setCellFactory(column -> new TableCell<Song, Long>() {
+                @Override
+                protected void updateItem(Long item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        long minutes = item / 60;
+                        long seconds = item % 60;
+                        setText(String.format("%02d:%02d", minutes, seconds));
+                    }
+                }
+            });
+        } else {
+            System.err.println("Warning: '时长' column not found in TableView. Duration formatting might not work.");
+        }
+
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> applyFilter(newValue));
+
+        btnLocalMusic.setOnAction(event -> showLocalMusic());
+        btnFavorites.setOnAction(event -> showFavorites());
+        btnCreatePlaylist.setOnAction(event -> createNewPlaylist());
+
+        playlistListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                showPlaylist(newVal);
+            }
+        });
+
         songTableView.setOnMouseClicked(event -> {
             if (event.getButton().equals(MouseButton.PRIMARY) && event.getClickCount() == 2) {
                 Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
                 if (selectedSong != null) {
-                    /*
-                    System.out.println("\n--- LibraryController Click Debug Start ---");
-                    System.out.println("Selected Song from TableView: [ID: " + selectedSong.getId() + ", Title: " + selectedSong.getTitle() + ", Path: " + selectedSong.getLocalFilePath() + "]");
-                    System.out.println("sortedData size (before passing to service): " + sortedData.size());
-                    System.out.println("sortedData content (what's passed to MediaPlayerService):");
-                    for (int i = 0; i < sortedData.size(); i++) {
-                        Song s = sortedData.get(i);
-                        System.out.println("    sortedData[" + i + "]: [ID: " + s.getId() + ", Title: " + s.getTitle() + ", Path: " + s.getLocalFilePath() + "]");
-                    }
-                    System.out.println("--- LibraryController Click Debug End ---\n");
-                    */
                     if (mediaPlayerService != null) {
-                        // 将当前 TableView 中显示的所有歌曲（即 sortedData）作为播放列表
                         mediaPlayerService.setPlaylist(new java.util.ArrayList<>(sortedData));
                         mediaPlayerService.playSong(selectedSong);
                     } else {
@@ -102,51 +126,414 @@ public class LibraryController implements Initializable {
             }
         });
 
+        songTableView.setContextMenu(createSongContextMenu());
+        playlistListView.setContextMenu(createPlaylistContextMenu());
 
-        refreshSongs(); // 初始加载歌曲
+        loadPlaylists();
+        showLocalMusic();
     }
 
-    public VBox getView() {
+    public HBox getView() {
         return rootView;
     }
 
-    /**
-     * 设置 MediaPlayerService 实例。
-     * 应该由 MainController 在初始化时调用。
-     * @param mediaPlayerService MediaPlayerService 实例
-     */
     public void setMediaPlayerService(MediaPlayerService mediaPlayerService) {
         this.mediaPlayerService = mediaPlayerService;
     }
 
-    /**
-     * 从数据库加载所有歌曲并更新 TableView。
-     * 此方法会重新加载所有数据到 masterData，从而触发 filteredData 和 sortedData 的更新。
-     */
     public void refreshSongs() {
-        System.out.println("Refreshing songs in LibraryView...");
-        List<Song> songs = songDAO.getAllSongs();
-        masterData.clear(); // 清空原始数据
-        masterData.addAll(songs); // 添加所有新数据
-        if (songs.isEmpty()) {
-            statusLabel.setText("您的音乐库中还没有歌曲。");
+        System.out.println("Refreshing songs in LibraryView based on current view: " + currentView);
+        switch (currentView) {
+            case LOCAL_MUSIC:
+                showLocalMusic();
+                break;
+            case FAVORITES:
+                showFavorites();
+                break;
+            case PLAYLIST:
+                if (currentSelectedPlaylist != null) {
+                    showPlaylist(currentSelectedPlaylist);
+                } else {
+                    showLocalMusic();
+                }
+                break;
+        }
+        loadPlaylists();
+    }
+
+    public void addSong(Song song) {
+        System.out.println("LibraryController received new song: " + song.getTitle());
+        Platform.runLater(() -> {
+            if (currentView == CurrentView.LOCAL_MUSIC) {
+                masterData.add(song);
+            }
+            refreshSongs();
+        });
+    }
+
+    private void showLocalMusic() {
+        currentView = CurrentView.LOCAL_MUSIC;
+        currentSelectedPlaylist = null;
+        currentViewTitle.setText("本地音乐");
+        masterData.clear();
+        masterData.addAll(songDAO.getAllSongs());
+        updateStatusLabel(masterData.size());
+        applyFilter(searchField.getText());
+        highlightSidebarButton(btnLocalMusic);
+    }
+
+    private void showFavorites() {
+        currentView = CurrentView.FAVORITES;
+        currentSelectedPlaylist = null;
+        currentViewTitle.setText("我喜欢");
+        masterData.clear();
+        masterData.addAll(songDAO.getFavoriteSongs());
+        updateStatusLabel(masterData.size());
+        applyFilter(searchField.getText());
+        highlightSidebarButton(btnFavorites);
+    }
+
+    private void showPlaylist(Playlist playlist) {
+        currentView = CurrentView.PLAYLIST;
+        currentSelectedPlaylist = playlist;
+        currentViewTitle.setText(playlist.getName());
+        masterData.clear();
+        masterData.addAll(playlistDAO.getSongsInPlaylist(playlist.getId()));
+        updateStatusLabel(masterData.size());
+        applyFilter(searchField.getText());
+        highlightPlaylistInListView(playlist);
+    }
+
+    private void updateStatusLabel(int count) {
+        if (count == 0) {
+            statusLabel.setText("当前视图中没有歌曲。");
         } else {
-            statusLabel.setText("已加载 " + masterData.size() + " 首歌曲。"); // 使用 masterData.size() 因为它是原始数据
+            statusLabel.setText("已加载 " + count + " 首歌曲。");
         }
     }
 
-    /**
-     * 添加一首新下载的歌曲到音乐库（并更新UI）。
-     * 当 DownloadController 通知有新歌曲时调用此方法。
-     * 直接添加到 masterData，FilteredList 和 SortedList 会自动响应。
-     * @param song 新下载的歌曲对象
-     */
-    public void addSong(Song song) {
-        System.out.println("LibraryController received new song: " + song.getTitle());
-        // 确保在 JavaFX Application Thread 上更新 ObservableList
-        javafx.application.Platform.runLater(() -> {
-            masterData.add(song);
-            statusLabel.setText("已加载 " + masterData.size() + " 首歌曲。"); // 更新总数
+    private void applyFilter(String searchText) {
+        filteredData.setPredicate(song -> {
+            if (searchText == null || searchText.isEmpty()) {
+                return true;
+            }
+            String lowerCaseFilter = searchText.toLowerCase();
+            return (song.getTitle() != null && song.getTitle().toLowerCase().contains(lowerCaseFilter)) ||
+                    (song.getArtist() != null && song.getArtist().toLowerCase().contains(lowerCaseFilter));
+        });
+    }
+
+    private void highlightSidebarButton(Button activeButton) {
+        btnLocalMusic.getStyleClass().remove("selected");
+        btnFavorites.getStyleClass().remove("selected");
+        playlistListView.getSelectionModel().clearSelection();
+        activeButton.getStyleClass().add("selected");
+    }
+
+    private void highlightPlaylistInListView(Playlist playlist) {
+        btnLocalMusic.getStyleClass().remove("selected");
+        btnFavorites.getStyleClass().remove("selected");
+        playlistListView.getSelectionModel().select(playlist);
+    }
+
+
+    // --- 歌曲右键菜单 ---
+    private ContextMenu createSongContextMenu() {
+        ContextMenu contextMenu = new ContextMenu();
+
+        MenuItem playItem = new MenuItem("播放");
+        playItem.setOnAction(event -> {
+            Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
+            if (selectedSong != null && mediaPlayerService != null) {
+                mediaPlayerService.setPlaylist(new java.util.ArrayList<>(sortedData));
+                mediaPlayerService.playSong(selectedSong);
+            }
+        });
+
+        MenuItem toggleFavoriteItem = new MenuItem();
+        toggleFavoriteItem.setOnAction(event -> {
+            Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
+            if (selectedSong != null) {
+                boolean newFavoriteStatus = !selectedSong.isFavorite();
+                selectedSong.setFavorite(newFavoriteStatus);
+                if (songDAO.saveSong(selectedSong)) { // 更新数据库
+                    statusLabel.setText("歌曲 '" + selectedSong.getTitle() + "' 已" + (newFavoriteStatus ? "添加至" : "移出") + "我喜欢。");
+                    refreshSongs(); // 刷新视图
+                } else {
+                    statusLabel.setText("更新歌曲收藏状态失败。");
+                }
+            }
+        });
+
+        MenuItem renameItem = new MenuItem("重命名...");
+        renameItem.setOnAction(event -> {
+            Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
+            if (selectedSong != null) {
+                showRenameSongDialog(selectedSong);
+            }
+        });
+
+        Menu addToPlaylistMenu = new Menu("添加到播放列表");
+
+        MenuItem removeFromPlaylist = new MenuItem("从播放列表移除");
+        removeFromPlaylist.setOnAction(event -> {
+            Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
+            if (selectedSong != null && currentView == CurrentView.PLAYLIST && currentSelectedPlaylist != null) {
+                if (playlistDAO.removeSongFromPlaylist(currentSelectedPlaylist.getId(), selectedSong.getId())) {
+                    refreshSongs(); // 刷新当前播放列表视图
+                    statusLabel.setText("已将 '" + selectedSong.getTitle() + "' 从 '" + currentSelectedPlaylist.getName() + "' 移除。");
+                } else {
+                    statusLabel.setText("从播放列表移除歌曲失败。");
+                }
+            } else {
+                statusLabel.setText("此操作仅在播放列表视图中可用。");
+            }
+        });
+
+        MenuItem deleteItem = new MenuItem("从音乐库删除 (及本地文件)");
+        deleteItem.setOnAction(event -> {
+            Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
+            if (selectedSong != null) {
+                showDeleteSongConfirmation(selectedSong);
+            }
+        });
+
+        // --- 核心改进部分：动态更新菜单项状态和文本 ---
+        contextMenu.setOnShowing(event -> {
+            Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
+            boolean isSongSelected = (selectedSong != null);
+
+            // 播放
+            playItem.setDisable(!isSongSelected);
+
+            // 我喜欢/取消收藏
+            toggleFavoriteItem.setDisable(!isSongSelected);
+            if (isSongSelected) {
+                toggleFavoriteItem.setText(selectedSong.isFavorite() ? "取消收藏" : "添加到我喜欢");
+            } else {
+                toggleFavoriteItem.setText("添加到我喜欢"); // 默认文本
+            }
+
+            // 重命名
+            renameItem.setDisable(!isSongSelected);
+
+            // 添加到播放列表
+            addToPlaylistMenu.setDisable(!isSongSelected);
+            if (isSongSelected) {
+                addToPlaylistMenu.getItems().clear();
+                List<Playlist> playlists = playlistDAO.getAllPlaylists();
+                if (playlists.isEmpty()) {
+                    MenuItem noPlaylists = new MenuItem("无播放列表");
+                    noPlaylists.setDisable(true);
+                    addToPlaylistMenu.getItems().add(noPlaylists);
+                } else {
+                    for (Playlist playlist : playlists) {
+                        MenuItem playlistItem = new MenuItem(playlist.getName());
+                        playlistItem.setOnAction(e -> {
+                            // 检查歌曲是否已在该播放列表中，避免重复添加
+                            if (playlistDAO.isSongInPlaylist(playlist.getId(), selectedSong.getId())) {
+                                statusLabel.setText("歌曲 '" + selectedSong.getTitle() + "' 已存在于 '" + playlist.getName() + "'。");
+                            } else if (playlistDAO.addSongToPlaylist(playlist.getId(), selectedSong.getId())) {
+                                statusLabel.setText("已将 '" + selectedSong.getTitle() + "' 添加到 '" + playlist.getName() + "'");
+                                // 如果当前视图是这个播放列表，则刷新它
+                                if (currentView == CurrentView.PLAYLIST && currentSelectedPlaylist != null && currentSelectedPlaylist.getId().equals(playlist.getId())) {
+                                    refreshSongs();
+                                }
+                            } else {
+                                statusLabel.setText("添加歌曲 '" + selectedSong.getTitle() + "' 到 '" + playlist.getName() + "' 失败。");
+                            }
+                        });
+                        addToPlaylistMenu.getItems().add(playlistItem);
+                    }
+                }
+            }
+
+            // 从播放列表移除
+            // 只有在当前视图是播放列表且有歌曲选中时才启用
+            removeFromPlaylist.setVisible(currentView == CurrentView.PLAYLIST);
+            removeFromPlaylist.setDisable(!isSongSelected || currentView != CurrentView.PLAYLIST || currentSelectedPlaylist == null);
+
+            // 删除
+            deleteItem.setDisable(!isSongSelected);
+        });
+
+
+        contextMenu.getItems().addAll(playItem, new SeparatorMenuItem(), toggleFavoriteItem, renameItem, addToPlaylistMenu, removeFromPlaylist, new SeparatorMenuItem(), deleteItem);
+        return contextMenu;
+    }
+
+    // --- 播放列表右键菜单 ---
+    private ContextMenu createPlaylistContextMenu() {
+        ContextMenu contextMenu = new ContextMenu();
+
+        MenuItem renameItem = new MenuItem("重命名播放列表...");
+        renameItem.setOnAction(event -> {
+            Playlist selectedPlaylist = playlistListView.getSelectionModel().getSelectedItem();
+            if (selectedPlaylist != null) {
+                showRenamePlaylistDialog(selectedPlaylist);
+            }
+        });
+
+        MenuItem deleteItem = new MenuItem("删除播放列表");
+        deleteItem.setOnAction(event -> {
+            Playlist selectedPlaylist = playlistListView.getSelectionModel().getSelectedItem();
+            if (selectedPlaylist != null) {
+                showDeletePlaylistConfirmation(selectedPlaylist);
+            }
+        });
+
+        contextMenu.getItems().addAll(renameItem, deleteItem);
+        return contextMenu;
+    }
+
+    // --- 对话框和确认 ---
+
+    private void showRenameSongDialog(Song song) {
+        Dialog<Song> dialog = new Dialog<>();
+        dialog.setTitle("重命名歌曲");
+        dialog.setHeaderText("修改歌曲信息");
+
+        ButtonType saveButtonType = new ButtonType("保存", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField titleField = new TextField(song.getTitle());
+        TextField artistField = new TextField(song.getArtist());
+
+        Platform.runLater(titleField::requestFocus);
+
+        grid.add(new Label("标题:"), 0, 0);
+        grid.add(titleField, 1, 0);
+        grid.add(new Label("艺术家:"), 0, 1);
+        grid.add(artistField, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                song.setTitle(titleField.getText());
+                song.setArtist(artistField.getText());
+                return song;
+            }
+            return null;
+        });
+
+        Optional<Song> result = dialog.showAndWait();
+        result.ifPresent(updatedSong -> {
+            if (songDAO.saveSong(updatedSong)) {
+                statusLabel.setText("歌曲 '" + updatedSong.getTitle() + "' 已更新。");
+                refreshSongs();
+            } else {
+                statusLabel.setText("更新歌曲失败。");
+            }
+        });
+    }
+
+    private void showDeleteSongConfirmation(Song song) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("删除歌曲");
+        alert.setHeaderText("确认删除歌曲?");
+        alert.setContentText("您确定要从音乐库中删除 '" + song.getTitle() + "' 吗？\n同时会删除本地文件: " + song.getLocalFilePath());
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            if (songDAO.deleteSong(song.getId())) {
+                File localFile = new File(song.getLocalFilePath());
+                if (localFile.exists()) {
+                    if (localFile.delete()) {
+                        statusLabel.setText("歌曲 '" + song.getTitle() + "' 已成功删除。");
+                    } else {
+                        statusLabel.setText("歌曲 '" + song.getTitle() + "' 已从数据库删除，但本地文件删除失败。");
+                    }
+                } else {
+                    statusLabel.setText("歌曲 '" + song.getTitle() + "' 已从数据库删除，本地文件不存在。");
+                }
+                refreshSongs();
+            } else {
+                statusLabel.setText("从数据库删除歌曲失败。");
+            }
+        }
+    }
+
+    private void createNewPlaylist() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("创建新播放列表");
+        dialog.setHeaderText("请输入播放列表名称");
+        dialog.setContentText("名称:");
+
+        Platform.runLater(() -> dialog.getEditor().requestFocus());
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(name -> {
+            if (!name.trim().isEmpty()) {
+                Playlist newPlaylist = new Playlist(name.trim(), "");
+                if (playlistDAO.createPlaylist(newPlaylist)) {
+                    statusLabel.setText("播放列表 '" + newPlaylist.getName() + "' 已创建。");
+                    loadPlaylists();
+                    showPlaylist(newPlaylist);
+                } else {
+                    statusLabel.setText("创建播放列表失败，可能名称已存在。");
+                }
+            } else {
+                statusLabel.setText("播放列表名称不能为空。");
+            }
+        });
+    }
+
+    private void showRenamePlaylistDialog(Playlist playlist) {
+        TextInputDialog dialog = new TextInputDialog(playlist.getName());
+        dialog.setTitle("重命名播放列表");
+        dialog.setHeaderText("请输入新的播放列表名称");
+        dialog.setContentText("新名称:");
+
+        Platform.runLater(() -> dialog.getEditor().requestFocus());
+
+        Optional<String> result = dialog.showAndWait();
+        result.ifPresent(newName -> {
+            if (!newName.trim().isEmpty() && !newName.trim().equals(playlist.getName())) {
+                String oldName = playlist.getName();
+                playlist.setName(newName.trim());
+                if (playlistDAO.updatePlaylist(playlist)) {
+                    statusLabel.setText("播放列表 '" + oldName + "' 已重命名为 '" + newName.trim() + "'。");
+                    loadPlaylists();
+                    if (currentSelectedPlaylist != null && currentSelectedPlaylist.getId().equals(playlist.getId())) {
+                        currentViewTitle.setText(newName.trim());
+                    }
+                } else {
+                    statusLabel.setText("重命名播放列表失败，可能名称已存在。");
+                }
+            }
+        });
+    }
+
+    private void showDeletePlaylistConfirmation(Playlist playlist) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("删除播放列表");
+        alert.setHeaderText("确认删除播放列表?");
+        alert.setContentText("您确定要删除播放列表 '" + playlist.getName() + "' 吗？\n此操作将不可逆，但不会删除其中的歌曲文件。");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            if (playlistDAO.deletePlaylist(playlist.getId())) {
+                statusLabel.setText("播放列表 '" + playlist.getName() + "' 已成功删除。");
+                loadPlaylists();
+                if (currentSelectedPlaylist != null && currentSelectedPlaylist.getId().equals(playlist.getId())) {
+                    showLocalMusic();
+                }
+            } else {
+                statusLabel.setText("删除播放列表失败。");
+            }
+        }
+    }
+
+    private void loadPlaylists() {
+        Platform.runLater(() -> {
+            List<Playlist> playlists = playlistDAO.getAllPlaylists();
+            playlistListView.getItems().setAll(playlists);
         });
     }
 }

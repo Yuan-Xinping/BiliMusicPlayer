@@ -180,7 +180,7 @@ public class BiliDownloader {
             infoJsonFile.delete();
 
             updateMessage("元数据解析成功。");
-            return new Song(id, title, artist, url, finalAudioFilePath, coverUrl, duration, LocalDateTime.now());
+            return new Song(id, title, artist, url, finalAudioFilePath, coverUrl, duration, LocalDateTime.now(),false);
         }
     }
 }

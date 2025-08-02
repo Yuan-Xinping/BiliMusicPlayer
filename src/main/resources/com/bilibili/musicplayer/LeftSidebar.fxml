@@ -10,7 +10,6 @@
         <Insets top="20" left="10" right="10" bottom="10"/>
     </padding>
 
-    <!-- 添加 fx:id -->
     <Button fx:id="libraryButton" onAction="#handleLibraryClick" styleClass="sidebar-button" contentDisplay="LEFT">
         <graphic>
             <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
@@ -21,7 +20,6 @@
         </graphic>
         <text>我的音乐</text>
     </Button>
-    <!-- 添加 fx:id -->
     <Button fx:id="downloadButton" onAction="#handleDownloadClick" styleClass="sidebar-button" contentDisplay="LEFT">
         <graphic>
             <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
@@ -32,7 +30,6 @@
         </graphic>
         <text>下载管理</text>
     </Button>
-    <!-- 添加 fx:id -->
     <Button fx:id="settingsButton" onAction="#handleSettingsClick" styleClass="sidebar-button" contentDisplay="LEFT">
         <graphic>
             <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">

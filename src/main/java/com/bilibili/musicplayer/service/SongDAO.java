@@ -22,13 +22,13 @@ public class SongDAO {
      * @return true 如果保存成功，false 如果失败
      */
     public boolean saveSong(Song song) {
-        String insertSQL = "INSERT INTO songs (id, title, artist, bilibili_url, local_file_path, cover_url, duration_seconds, download_date) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        String updateSQL = "UPDATE songs SET title=?, artist=?, bilibili_url=?, local_file_path=?, cover_url=?, duration_seconds=?, download_date=? WHERE id=?";
+        String insertSQL = "INSERT INTO songs (id, title, artist, bilibili_url, local_file_path, cover_url, duration_seconds, download_date, is_favorite) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String updateSQL = "UPDATE songs SET title=?, artist=?, bilibili_url=?, local_file_path=?, cover_url=?, duration_seconds=?, download_date=?, is_favorite=? WHERE id=?";
 
         try (Connection conn = DatabaseManager.getConnection()) {
-            // 尝试查询是否存在该ID的歌曲，将当前连接传入
-            if (getSongById(song.getId(), conn) != null) {
+            // 尝试查询是否存在该ID的歌曲
+            if (getSongById(song.getId(), conn) != null) { // 传入连接
                 try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
                     pstmt.setString(1, song.getTitle());
                     pstmt.setString(2, song.getArtist());
@@ -37,8 +37,10 @@ public class SongDAO {
                     pstmt.setString(5, song.getCoverUrl());
                     pstmt.setLong(6, song.getDurationSeconds());
                     pstmt.setString(7, song.getDownloadDate().toString());
-                    pstmt.setString(8, song.getId());
+                    pstmt.setInt(8, song.isFavorite() ? 1 : 0); // is_favorite
+                    pstmt.setString(9, song.getId());
                     int rowsAffected = pstmt.executeUpdate();
+                    System.out.println("更新歌曲: " + song.getTitle() + ", 影响行数: " + rowsAffected);
                     return rowsAffected > 0;
                 }
             } else {
@@ -51,7 +53,9 @@ public class SongDAO {
                     pstmt.setString(6, song.getCoverUrl());
                     pstmt.setLong(7, song.getDurationSeconds());
                     pstmt.setString(8, song.getDownloadDate().toString());
+                    pstmt.setInt(9, song.isFavorite() ? 1 : 0); // is_favorite
                     int rowsAffected = pstmt.executeUpdate();
+                    System.out.println("插入歌曲: " + song.getTitle() + ", 影响行数: " + rowsAffected);
                     return rowsAffected > 0;
                 }
             }
@@ -64,15 +68,13 @@ public class SongDAO {
 
     /**
      * 根据ID获取歌曲信息。
-     * 注意：此方法现在需要一个已打开的 Connection 对象。
      * @param id 歌曲ID
-     * @param conn 已打开的数据库连接
+     * @param conn 外部传入的数据库连接，用于事务或避免重复连接
      * @return 歌曲对象，如果不存在则返回null
      * @throws SQLException 如果读取数据失败
      */
     public Song getSongById(String id, Connection conn) throws SQLException {
         String sql = "SELECT * FROM songs WHERE id = ?";
-        // 不再使用 try-with-resources，因为连接由调用者管理
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -105,12 +107,32 @@ public class SongDAO {
     }
 
     /**
+     * 获取所有收藏的歌曲。
+     * @return 收藏歌曲列表
+     */
+    public List<Song> getFavoriteSongs() {
+        List<Song> songs = new ArrayList<>();
+        String sql = "SELECT * FROM songs WHERE is_favorite = 1 ORDER BY download_date DESC";
+        try (Connection conn = DatabaseManager.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                songs.add(mapResultSetToSong(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("从数据库获取收藏歌曲失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return songs;
+    }
+
+    /**
      * 从 ResultSet 映射到 Song 对象。
      * @param rs 结果集
      * @return Song 对象
      * @throws SQLException 如果读取数据失败
      */
-    private Song mapResultSetToSong(ResultSet rs) throws SQLException {
+    public Song mapResultSetToSong(ResultSet rs) throws SQLException {
         String id = rs.getString("id");
         String title = rs.getString("title");
         String artist = rs.getString("artist");
@@ -119,12 +141,13 @@ public class SongDAO {
         String coverUrl = rs.getString("cover_url");
         long durationSeconds = rs.getLong("duration_seconds");
         LocalDateTime downloadDate = LocalDateTime.parse(rs.getString("download_date"));
+        boolean isFavorite = rs.getInt("is_favorite") == 1; // 读取 is_favorite
 
-        return new Song(id, title, artist, bilibiliUrl, localFilePath, coverUrl, durationSeconds, downloadDate);
+        return new Song(id, title, artist, bilibiliUrl, localFilePath, coverUrl, durationSeconds, downloadDate, isFavorite);
     }
 
     /**
-     *      * 删除指定ID的歌曲。
+     * 删除指定ID的歌曲。
      * @param id 歌曲ID
      * @return true 如果删除成功，false 如果失败
      */
@@ -134,6 +157,7 @@ public class SongDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id);
             int rowsAffected = pstmt.executeUpdate();
+            System.out.println("从数据库删除歌曲 (ID: " + id + "), 影响行数: " + rowsAffected);
             return rowsAffected > 0;
         } catch (SQLException e) {
             System.err.println("删除歌曲失败 (ID: " + id + "): " + e.getMessage());

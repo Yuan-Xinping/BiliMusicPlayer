@@ -13,15 +13,9 @@ public class DatabaseManager {
 
     private static Connection connection = null;
 
-    /**
-     * 获取数据库连接。如果连接不存在或已关闭，则创建一个新连接。
-     * @return 数据库连接对象
-     * @throws SQLException 如果连接失败
-     */
     public static Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             try {
-                // 加载SQLite JDBC驱动
                 Class.forName("org.sqlite.JDBC");
                 connection = DriverManager.getConnection(JDBC_URL);
                 System.out.println("数据库连接成功: " + JDBC_URL);
@@ -37,35 +31,47 @@ public class DatabaseManager {
         return connection;
     }
 
-    /**
-     * 创建数据库表（如果不存在）。
-     * 目前只创建 songs 表。
-     * @throws SQLException 如果创建表失败
-     */
     private static void createTables() throws SQLException {
+        // 更新 songs 表：添加 is_favorite 字段
         String createSongsTableSQL = "CREATE TABLE IF NOT EXISTS songs (" +
-                "id TEXT PRIMARY KEY," + // BVID 或 yt-dlp ID
+                "id TEXT PRIMARY KEY," +
                 "title TEXT NOT NULL," +
                 "artist TEXT," +
                 "bilibili_url TEXT NOT NULL," +
                 "local_file_path TEXT NOT NULL," +
                 "cover_url TEXT," +
                 "duration_seconds INTEGER," +
-                "download_date TEXT NOT NULL" + // 存储为 ISO 8601 格式字符串
+                "download_date TEXT NOT NULL," +
+                "is_favorite INTEGER DEFAULT 0" + // 新增字段，0为否，1为是
+                ");";
+
+        // 新增 playlists 表
+        String createPlaylistsTableSQL = "CREATE TABLE IF NOT EXISTS playlists (" +
+                "id TEXT PRIMARY KEY," +
+                "name TEXT NOT NULL UNIQUE," + // 播放列表名称唯一
+                "description TEXT" +
+                ");";
+
+        // 新增 playlist_songs 关联表（多对多关系）
+        String createPlaylistSongsTableSQL = "CREATE TABLE IF NOT EXISTS playlist_songs (" +
+                "playlist_id TEXT NOT NULL," +
+                "song_id TEXT NOT NULL," +
+                "PRIMARY KEY (playlist_id, song_id)," + // 复合主键
+                "FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE," + // 级联删除
+                "FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE" + // 级联删除
                 ");";
 
         try (Statement stmt = connection.createStatement()) {
             stmt.execute(createSongsTableSQL);
-            System.out.println("表 'songs' 检查或创建成功。");
+            stmt.execute(createPlaylistsTableSQL);
+            stmt.execute(createPlaylistSongsTableSQL);
+            System.out.println("所有数据库表检查或创建成功。");
         } catch (SQLException e) {
-            System.err.println("创建表 'songs' 失败: " + e.getMessage());
+            System.err.println("创建数据库表失败: " + e.getMessage());
             throw e;
         }
     }
 
-    /**
-     * 关闭数据库连接。
-     */
     public static void closeConnection() {
         if (connection != null) {
             try {
