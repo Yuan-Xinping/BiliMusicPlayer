@@ -22,7 +22,8 @@
             <graphic>
                 <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
                     <image>
-                        <Image url="@/icons/normal.png" />
+                        <!-- 将 initial.png 更改为 repeat_all.png -->
+                        <Image url="@/icons/repeat_all.png" />
                     </image>
                 </ImageView>
             </graphic>

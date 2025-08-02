@@ -19,7 +19,6 @@ import javafx.scene.layout.HBox;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ResourceBundle;
-// import java.text.DecimalFormat; // 此导入已不再需要，因为timeFormat字段被移除了
 
 public class PlaybackController implements Initializable {
 
@@ -41,13 +40,12 @@ public class PlaybackController implements Initializable {
     // 图标资源，统一命名为不带 _icon 后缀
     private Image playIcon;
     private Image pauseIcon;
-    private Image normalModeIcon; // 用于顺序播放模式
+    // private Image normalModeIcon; // 已移除 normal 模式，因此不再需要此图标
     private Image repeatAllModeIcon;
     private Image repeatOneModeIcon;
     private Image shuffleModeIcon;
 
     private boolean isDragging = false;
-    // private final DecimalFormat timeFormat = new DecimalFormat("00"); // 此字段未在代码中使用，可以移除
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -57,7 +55,7 @@ public class PlaybackController implements Initializable {
         try {
             playIcon = loadImage("/icons/play.png");
             pauseIcon = loadImage("/icons/pause.png");
-            normalModeIcon = loadImage("/icons/normal.png");
+            // normalModeIcon = loadImage("/icons/normal.png"); // 移除 normal 模式图标加载
             repeatAllModeIcon = loadImage("/icons/repeat_all.png");
             repeatOneModeIcon = loadImage("/icons/repeat_one.png");
             shuffleModeIcon = loadImage("/icons/shuffle.png");
@@ -69,11 +67,12 @@ public class PlaybackController implements Initializable {
                 playPauseButton.setText("▶"); // 备用文本
             }
 
-            // 初始设置播放模式图标 (假设默认是NORMAL)
+            // 初始设置播放模式图标 (假设默认是 REPEAT_ALL)
             if (playbackModeButton != null && playbackModeButton.getGraphic() instanceof ImageView) {
-                ((ImageView) playbackModeButton.getGraphic()).setImage(normalModeIcon);
+                // 默认设置为 REPEAT_ALL 模式图标
+                ((ImageView) playbackModeButton.getGraphic()).setImage(repeatAllModeIcon);
             } else if (playbackModeButton != null) {
-                playbackModeButton.setText("顺序"); // 备用文本
+                playbackModeButton.setText("循环"); // 备用文本
             }
 
             // 确保其他按钮也有文本或图标作为备用
@@ -315,9 +314,10 @@ public class PlaybackController implements Initializable {
             MediaPlayerService.PlaybackMode currentMode = mediaPlayerService.playbackModeProperty().get();
             MediaPlayerService.PlaybackMode nextMode;
             switch (currentMode) {
-                case NORMAL:
-                    nextMode = MediaPlayerService.PlaybackMode.REPEAT_ALL;
-                    break;
+                // 移除 NORMAL 模式
+                // case NORMAL:
+                //     nextMode = MediaPlayerService.PlaybackMode.REPEAT_ALL;
+                //     break;
                 case REPEAT_ALL:
                     nextMode = MediaPlayerService.PlaybackMode.REPEAT_ONE;
                     break;
@@ -325,8 +325,8 @@ public class PlaybackController implements Initializable {
                     nextMode = MediaPlayerService.PlaybackMode.SHUFFLE;
                     break;
                 case SHUFFLE:
-                default:
-                    nextMode = MediaPlayerService.PlaybackMode.NORMAL;
+                default: // SHUFFLE 之后回到 REPEAT_ALL
+                    nextMode = MediaPlayerService.PlaybackMode.REPEAT_ALL;
                     break;
             }
             mediaPlayerService.setPlaybackMode(nextMode);
@@ -373,21 +373,26 @@ public class PlaybackController implements Initializable {
         String text = ""; // 备用文本
 
         switch (mode) {
-            case NORMAL:
-                iconView = (normalModeIcon != null) ? new ImageView(normalModeIcon) : null;
-                text = "顺序";
-                break;
+            // 移除 NORMAL 模式的 UI 更新逻辑
+            // case NORMAL:
+            //     iconView = (normalModeIcon != null) ? new ImageView(normalModeIcon) : null;
+            //     text = "顺序";
+            //     break;
             case REPEAT_ALL:
                 iconView = (repeatAllModeIcon != null) ? new ImageView(repeatAllModeIcon) : null;
                 text = "循环";
                 break;
             case REPEAT_ONE:
-                iconView = (repeatOneModeIcon != null) ? new ImageView(repeatOneModeIcon) : null; // 修正：这里应该是repeatOneModeIcon
+                iconView = (repeatOneModeIcon != null) ? new ImageView(repeatOneModeIcon) : null;
                 text = "单曲";
                 break;
             case SHUFFLE:
                 iconView = (shuffleModeIcon != null) ? new ImageView(shuffleModeIcon) : null;
                 text = "随机";
+                break;
+            default: // 如果出现未知模式，默认显示循环模式
+                iconView = (repeatAllModeIcon != null) ? new ImageView(repeatAllModeIcon) : null;
+                text = "循环";
                 break;
         }
 

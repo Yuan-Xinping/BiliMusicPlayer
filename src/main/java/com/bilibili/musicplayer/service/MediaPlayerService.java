@@ -15,7 +15,7 @@ import uk.co.caprica.vlcj.player.MediaPlayerEventAdapter;
 import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
 
 import java.io.File;
-import java.util.Collections;
+import java.util.Collections; // 尽管这里没有直接使用，但如果其他地方有用到，可以保留
 import java.util.List;
 import java.util.Random;
 
@@ -36,12 +36,13 @@ public class MediaPlayerService {
 
     // 播放模式枚举
     public enum PlaybackMode {
-        NORMAL,       // 顺序播放，列表末尾停止
+        // NORMAL,       // 顺序播放，列表末尾停止 - 已移除
+        REPEAT_ALL,   // 列表循环 (现在作为默认的顺序播放模式)
         REPEAT_ONE,   // 单曲循环
-        REPEAT_ALL,   // 列表循环
         SHUFFLE       // 随机播放
     }
-    private final ObjectProperty<PlaybackMode> playbackMode = new SimpleObjectProperty<>(PlaybackMode.NORMAL);
+    // 默认播放模式改为 REPEAT_ALL
+    private final ObjectProperty<PlaybackMode> playbackMode = new SimpleObjectProperty<>(PlaybackMode.REPEAT_ALL);
     private final Random random = new Random();
 
     // 计时器变量 (保留，用于测量播放启动时间)
@@ -263,7 +264,8 @@ public class MediaPlayerService {
             Song nextSong = currentPlaylist.get(nextIndex);
             playSong(nextSong); // 使用公共入口 playSong
         } else {
-            // 如果没有下一首 (NORMAL 模式下到达列表末尾)
+            // 如果没有下一首 (在 REPEAT_ALL 模式下，这个分支理论上不会被触发，因为会循环)
+            // 但为了健壮性，如果 getNextSongIndex 意外返回 -1，则停止
             stop();
         }
     }
@@ -284,7 +286,8 @@ public class MediaPlayerService {
             Song prevSong = currentPlaylist.get(prevIndex);
             playSong(prevSong); // 使用公共入口 playSong
         } else {
-            // 如果没有上一首 (NORMAL 模式下到达列表开头)
+            // 如果没有上一首 (在 REPEAT_ALL 模式下，这个分支理论上不会被触发，因为会循环)
+            // 但为了健壮性，如果 getPreviousSongIndex 意外返回 -1，则停止
             stop();
         }
     }
@@ -298,7 +301,7 @@ public class MediaPlayerService {
 
         int currentIndex = currentSongIndex.get();
         // 如果当前没有歌曲在播放，默认从第一首开始
-        if (currentIndex == -1 && !currentPlaylist.isEmpty()) {
+        if (currentIndex == -1) { // 移除 !currentPlaylist.isEmpty()，因为前面已经检查过
             return 0;
         }
 
@@ -313,14 +316,8 @@ public class MediaPlayerService {
                 } while (newIndex == currentIndex && currentPlaylist.size() > 1); // 避免重复播放同一首歌，除非只有一首
                 return newIndex;
             case REPEAT_ALL:
+            default: // 默认处理 REPEAT_ALL，因为 NORMAL 已移除
                 return (currentIndex + 1) % currentPlaylist.size(); // 列表循环
-            case NORMAL:
-            default:
-                if (currentIndex < currentPlaylist.size() - 1) {
-                    return currentIndex + 1;
-                } else {
-                    return -1; // 顺序播放，到达列表末尾
-                }
         }
     }
 
@@ -333,7 +330,7 @@ public class MediaPlayerService {
 
         int currentIndex = currentSongIndex.get();
         // 如果当前没有歌曲在播放，默认从第一首开始
-        if (currentIndex == -1 && !currentPlaylist.isEmpty()) {
+        if (currentIndex == -1) { // 移除 !currentPlaylist.isEmpty()，因为前面已经检查过
             return 0;
         }
 
@@ -348,14 +345,8 @@ public class MediaPlayerService {
                 } while (newIndex == currentIndex && currentPlaylist.size() > 1);
                 return newIndex;
             case REPEAT_ALL:
+            default: // 默认处理 REPEAT_ALL，因为 NORMAL 已移除
                 return (currentIndex - 1 + currentPlaylist.size()) % currentPlaylist.size(); // 列表循环
-            case NORMAL:
-            default:
-                if (currentIndex > 0) {
-                    return currentIndex - 1;
-                } else {
-                    return -1; // 顺序播放，到达列表开头
-                }
         }
     }
 
