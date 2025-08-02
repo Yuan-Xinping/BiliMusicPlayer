@@ -8,12 +8,14 @@ import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
+import javafx.scene.control.Alert;
 
 import uk.co.caprica.vlcj.player.MediaPlayer;
 import uk.co.caprica.vlcj.player.MediaPlayerEventAdapter;
 import uk.co.caprica.vlcj.player.embedded.EmbeddedMediaPlayer;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -32,16 +34,17 @@ public class MediaPlayerService {
     private final ObservableList<Song> currentPlaylist = FXCollections.observableArrayList();
     private final IntegerProperty currentSongIndex = new SimpleIntegerProperty(-1);
 
-    private final BooleanProperty loopMode = new SimpleBooleanProperty(false);
-    private final BooleanProperty shuffleMode = new SimpleBooleanProperty(false);
+    // 播放模式枚举
+    public enum PlaybackMode {
+        NORMAL,       // 顺序播放，列表末尾停止
+        REPEAT_ONE,   // 单曲循环
+        REPEAT_ALL,   // 列表循环
+        SHUFFLE       // 随机播放
+    }
+    private final ObjectProperty<PlaybackMode> playbackMode = new SimpleObjectProperty<>(PlaybackMode.NORMAL);
     private final Random random = new Random();
 
-    // 预加载相关
-    private Song preloadedSong = null;
-    private boolean isPreloading = false;
-    private int originalVolume = 100; // 存储预加载前的音量，以便恢复
-
-    // 计时器变量
+    // 计时器变量 (保留，用于测量播放启动时间)
     private long playMediaCallTime = 0;
 
     public MediaPlayerService() {
@@ -50,34 +53,21 @@ public class MediaPlayerService {
         mediaPlayer.addMediaPlayerEventListener(new MediaPlayerEventAdapter() {
             @Override
             public void playing(MediaPlayer mp) {
-                if (isPreloading) {
-                    System.out.println("MediaPlayerService: Preloading playing event (suppressed UI update).");
-                    Platform.runLater(() -> {
-                        mp.pause();
-                        mp.setVolume(0); // 确保静音
-                        System.out.println("MediaPlayerService: Preloading paused and muted.");
-                    });
-                } else {
-                    Platform.runLater(() -> {
-                        playing.set(true);
-                        long endTime = System.nanoTime();
-                        long durationMs = (endTime - playMediaCallTime) / 1_000_000;
-                        System.out.println("MediaPlayerService: Playing started. Load time from playMedia call to playing event: " + durationMs + " ms");
-                    });
-                    System.out.println("MediaPlayerService: Playing started.");
-                }
+                Platform.runLater(() -> { // 确保UI更新在JavaFX线程
+                    playing.set(true);
+                    long endTime = System.nanoTime();
+                    long durationMs = (endTime - playMediaCallTime) / 1_000_000;
+                    System.out.println("MediaPlayerService: Playing started. Load time from playMedia call to playing event: " + durationMs + " ms");
+                });
+                System.out.println("MediaPlayerService: Playing started.");
             }
 
             @Override
             public void paused(MediaPlayer mp) {
-                if (isPreloading) {
-                    System.out.println("MediaPlayerService: Preloading paused event (suppressed UI update).");
-                } else {
-                    Platform.runLater(() -> {
-                        playing.set(false);
-                    });
-                    System.out.println("MediaPlayerService: Paused.");
-                }
+                Platform.runLater(() -> {
+                    playing.set(false);
+                });
+                System.out.println("MediaPlayerService: Paused.");
             }
 
             @Override
@@ -86,26 +76,17 @@ public class MediaPlayerService {
                     playing.set(false);
                     progress.set(0.0);
                     currentTimeText.set("00:00");
+                    // currentSong.set(null); // 可选：停止时清除当前歌曲信息
                 });
                 System.out.println("MediaPlayerService: Stopped.");
-                preloadedSong = null;
-                isPreloading = false;
             }
 
             @Override
             public void finished(MediaPlayer mp) {
                 Platform.runLater(() -> {
-                    System.out.println("MediaPlayerService: Song finished. Current loopMode: " + loopMode.get());
-                    if (loopMode.get()) { // 单曲循环
-                        Song songToReplay = currentSong.get();
-                        if (songToReplay != null) {
-                            playSongInternal(songToReplay); // <-- 修改这里
-                        } else {
-                            stop();
-                        }
-                    } else { // 列表循环或随机播放
-                        playNext();
-                    }
+                    System.out.println("MediaPlayerService: Song finished. Current playbackMode: " + playbackMode.get());
+                    // 无论何种模式，都通过 playNext() 来处理下一首逻辑
+                    playNext();
                 });
             }
 
@@ -113,40 +94,54 @@ public class MediaPlayerService {
             public void error(MediaPlayer mp) {
                 Platform.runLater(() -> {
                     playing.set(false);
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Playback Error");
+                    alert.setHeaderText("An error occurred during playback.");
+                    alert.setContentText("The media file might be corrupted or unplayable. Please try another song.");
+                    alert.showAndWait();
                 });
                 System.err.println("MediaPlayerService: Playback error.");
             }
 
             @Override
             public void timeChanged(MediaPlayer mp, long newTime) {
-                if (!isPreloading) {
-                    Platform.runLater(() -> {
-                        currentTimeText.set(formatTime(newTime));
-                        long totalTime = mp.getLength();
-                        if (totalTime > 0) {
-                            progress.set((double) newTime / totalTime);
-                        }
-                    });
-                }
+                Platform.runLater(() -> {
+                    currentTimeText.set(formatTime(newTime));
+                    long totalTime = mp.getLength();
+                    if (totalTime > 0) {
+                        progress.set((double) newTime / totalTime);
+                    }
+                });
             }
 
             @Override
             public void lengthChanged(MediaPlayer mp, long newLength) {
-                if (!isPreloading) {
-                    Platform.runLater(() -> {
-                        totalTimeText.set(formatTime(newLength));
-                    });
-                }
+                Platform.runLater(() -> {
+                    totalTimeText.set(formatTime(newLength));
+                });
             }
         });
 
+        // 监听音量属性变化，更新播放器音量
         volume.addListener((obs, oldVal, newVal) -> {
-            originalVolume = newVal.intValue();
-            if (!isPreloading) {
-                mediaPlayer.setVolume(newVal.intValue());
-            }
+            mediaPlayer.setVolume(newVal.intValue());
         });
-        mediaPlayer.setVolume(volume.get());
+        mediaPlayer.setVolume(volume.get()); // 初始设置播放器音量
+    }
+
+    /**
+     * 设置播放列表。会清空当前列表并添加新歌曲。
+     * @param songs 新的歌曲列表
+     */
+    public void setPlaylist(List<Song> songs) {
+        Platform.runLater(() -> {
+            currentPlaylist.clear();
+            if (songs != null) {
+                currentPlaylist.addAll(songs);
+            }
+            currentSongIndex.set(-1); // 重置当前播放歌曲索引
+            System.out.println("MediaPlayerService: Playlist updated with " + currentPlaylist.size() + " songs.");
+        });
     }
 
     /**
@@ -156,79 +151,75 @@ public class MediaPlayerService {
      */
     public void playSong(Song song) {
         Task<Void> playTask = new Task<Void>() {
-            @Override // <-- 确保这里有 @Override
+            @Override
             protected Void call() throws Exception {
-                // 在后台线程执行文件存在性检查
                 if (song == null || song.getLocalFilePath() == null) {
                     Platform.runLater(() -> {
-                        System.err.println("MediaPlayerService: Invalid song or file path is null: " + (song != null ? song.getLocalFilePath() : "null"));
-                        // 可以在这里显示一个 UI 提示
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Playback Error");
+                        alert.setHeaderText("Invalid Song Information");
+                        alert.setContentText("The selected song has no valid file path.");
+                        alert.showAndWait();
                     });
                     return null;
                 }
                 File mediaFile = new File(song.getLocalFilePath());
                 if (!mediaFile.exists()) {
                     Platform.runLater(() -> {
-                        System.err.println("MediaPlayerService: File not found: " + song.getLocalFilePath());
-                        // 可以在这里显示一个 UI 提示
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Playback Error");
+                        alert.setHeaderText("File Not Found");
+                        alert.setContentText("The song file could not be found at: \n" + song.getLocalFilePath() + "\nIt might have been moved or deleted.");
+                        alert.showAndWait();
                     });
                     return null;
                 }
 
                 // 文件存在，切换回 JavaFX Application Thread 执行实际播放
                 Platform.runLater(() -> {
+                    // 如果播放的歌曲不在当前播放列表中，则将其添加到列表并播放
+                    // 否则，更新当前索引
+                    int index = currentPlaylist.indexOf(song);
+                    if (index == -1) {
+                        currentPlaylist.add(song);
+                        currentSongIndex.set(currentPlaylist.size() - 1);
+                    } else {
+                        currentSongIndex.set(index);
+                    }
                     playSongInternal(song);
                 });
                 return null;
             }
         };
-        new Thread(playTask).start(); // <-- 确保这里是 java.lang.Thread
+        new Thread(playTask).start();
     }
+
 
     /**
      * 实际执行 VLCJ 播放操作的方法，应在 JavaFX Application Thread 上调用。
      * @param song 要播放的歌曲对象
      */
     private void playSongInternal(Song song) {
-        // 如果要播放的歌曲就是当前预加载的歌曲
-        if (preloadedSong != null && preloadedSong.equals(song) && isPreloading) {
-            System.out.println("MediaPlayerService: Playing preloaded song: " + song.getTitle());
-            isPreloading = false; // 切换到非预加载模式
-            mediaPlayer.setVolume(originalVolume); // 恢复音量
-            mediaPlayer.play(); // 直接播放
-            Platform.runLater(() -> {
-                currentSong.set(song);
-                int index = currentPlaylist.indexOf(song);
-                if (index != -1) {
-                    currentSongIndex.set(index);
-                } else {
-                    currentPlaylist.add(song);
-                    currentSongIndex.set(currentPlaylist.size() - 1);
-                }
-            });
+        // 停止当前播放
+        mediaPlayer.stop();
+
+        playMediaCallTime = System.nanoTime(); // 在调用 playMedia 前记录时间
+
+        // 播放新媒体
+        boolean success = mediaPlayer.playMedia(song.getLocalFilePath());
+        if (success) {
+            currentSong.set(song); // 更新当前播放歌曲对象
+            System.out.println("MediaPlayerService: Playing " + song.getTitle() + " from " + song.getLocalFilePath());
         } else {
-            // 停止当前播放或预加载
-            mediaPlayer.stop(); // 这会触发 stopped 事件，清除 isPreloading 和 preloadedSong
-
-            playMediaCallTime = System.nanoTime(); // 在调用 playMedia 前记录时间
-
-            // 播放新媒体
-            boolean success = mediaPlayer.playMedia(song.getLocalFilePath());
-            if (success) {
-                Platform.runLater(() -> {
-                    currentSong.set(song); // 更新当前播放歌曲对象
-                    int index = currentPlaylist.indexOf(song);
-                    if (index != -1) {
-                        currentSongIndex.set(index);
-                    } else {
-                        currentPlaylist.add(song);
-                        currentSongIndex.set(currentPlaylist.size() - 1);
-                    }
-                });
-                System.out.println("MediaPlayerService: Playing " + song.getTitle() + " from " + song.getLocalFilePath());
-            } else {
-                System.err.println("MediaPlayerService: Failed to start media " + song.getLocalFilePath());
-            }
+            System.err.println("MediaPlayerService: Failed to start media " + song.getLocalFilePath());
+            // 播放失败时，可以考虑重置 currentSong 和 index
+            currentSong.set(null);
+            currentSongIndex.set(-1);
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Playback Error");
+            alert.setHeaderText("Failed to start media playback.");
+            alert.setContentText("Could not play: " + song.getTitle() + ".\nEnsure the file is not corrupted and VLC is correctly configured.");
+            alert.showAndWait();
         }
     }
 
@@ -237,11 +228,13 @@ public class MediaPlayerService {
             mediaPlayer.pause();
         } else {
             if (currentSong.get() == null && !currentPlaylist.isEmpty()) {
-                playSongInternal(currentPlaylist.get(0)); // <-- 修改这里
+                // 如果没有正在播放的歌曲，且播放列表不为空，则播放列表中的第一首
+                playSong(currentPlaylist.get(0));
             } else if (currentSong.get() != null) {
+                // 如果有当前歌曲，则继续播放
                 mediaPlayer.play();
             } else {
-                System.out.println("MediaPlayerService: No song to play.");
+                System.out.println("MediaPlayerService: No song to play and playlist is empty.");
             }
         }
     }
@@ -264,28 +257,13 @@ public class MediaPlayerService {
             return;
         }
 
-        int nextIndex;
-        if (shuffleMode.get()) {
-            nextIndex = random.nextInt(currentPlaylist.size());
-            if (currentPlaylist.size() > 1 && nextIndex == currentSongIndex.get()) {
-                nextIndex = (nextIndex + 1) % currentPlaylist.size();
-            }
-        } else {
-            nextIndex = currentSongIndex.get() + 1;
-            if (nextIndex >= currentPlaylist.size()) {
-                nextIndex = 0;
-            }
-        }
-
-        if (nextIndex >= 0 && nextIndex < currentPlaylist.size()) {
+        int nextIndex = getNextSongIndex();
+        if (nextIndex != -1) {
+            currentSongIndex.set(nextIndex); // 更新当前歌曲索引
             Song nextSong = currentPlaylist.get(nextIndex);
-            playSongInternal(nextSong); // <-- 修改这里
-            // 在这里，你可以考虑预加载再下一首歌曲
-            if (currentPlaylist.size() > 1) {
-                int nextNextIndex = (nextIndex + 1) % currentPlaylist.size();
-                preloadSong(currentPlaylist.get(nextNextIndex));
-            }
+            playSong(nextSong); // 使用公共入口 playSong
         } else {
+            // 如果没有下一首 (NORMAL 模式下到达列表末尾)
             stop();
         }
     }
@@ -300,78 +278,85 @@ public class MediaPlayerService {
             return;
         }
 
-        int prevIndex;
-        if (shuffleMode.get()) {
-            prevIndex = random.nextInt(currentPlaylist.size());
-            if (currentPlaylist.size() > 1 && prevIndex == currentSongIndex.get()) {
-                prevIndex = (prevIndex - 1 + currentPlaylist.size()) % currentPlaylist.size();
-            }
+        int prevIndex = getPreviousSongIndex();
+        if (prevIndex != -1) {
+            currentSongIndex.set(prevIndex); // 更新当前歌曲索引
+            Song prevSong = currentPlaylist.get(prevIndex);
+            playSong(prevSong); // 使用公共入口 playSong
         } else {
-            prevIndex = currentSongIndex.get() - 1;
-            if (prevIndex < 0) {
-                prevIndex = currentPlaylist.size() - 1;
-            }
-        }
-
-        if (prevIndex >= 0 && prevIndex < currentPlaylist.size()) {
-            playSongInternal(currentPlaylist.get(prevIndex)); // <-- 修改这里
-        } else {
+            // 如果没有上一首 (NORMAL 模式下到达列表开头)
             stop();
         }
     }
 
     /**
-     * 预加载下一首歌曲。
-     * 应该在当前歌曲播放时，或者在播放列表切换时调用。
-     * @param songToPreload 要预加载的歌曲对象
+     * 根据当前播放模式获取下一首歌曲的索引。
+     * @return 下一首歌曲的索引，如果当前模式下没有下一首则返回 -1。
      */
-    public void preloadSong(Song songToPreload) {
-        // 预加载也可能涉及文件检查，为了避免阻塞 UI，这里也将其放在 Task 中
-        Task<Void> preloadTask = new Task<Void>() {
-            @Override
-            protected Void call() throws Exception {
-                if (songToPreload == null || songToPreload.getLocalFilePath() == null) {
-                    System.err.println("MediaPlayerService: Invalid song for preloading or file not found: " + (songToPreload != null ? songToPreload.getLocalFilePath() : "null"));
-                    return null;
+    private int getNextSongIndex() {
+        if (currentPlaylist.isEmpty()) return -1;
+
+        int currentIndex = currentSongIndex.get();
+        // 如果当前没有歌曲在播放，默认从第一首开始
+        if (currentIndex == -1 && !currentPlaylist.isEmpty()) {
+            return 0;
+        }
+
+        switch (playbackMode.get()) {
+            case REPEAT_ONE:
+                return currentIndex; // 单曲循环，始终返回当前歌曲
+            case SHUFFLE:
+                if (currentPlaylist.size() <= 1) return currentIndex; // 如果只有一首歌，就一直播放它
+                int newIndex;
+                do {
+                    newIndex = random.nextInt(currentPlaylist.size());
+                } while (newIndex == currentIndex && currentPlaylist.size() > 1); // 避免重复播放同一首歌，除非只有一首
+                return newIndex;
+            case REPEAT_ALL:
+                return (currentIndex + 1) % currentPlaylist.size(); // 列表循环
+            case NORMAL:
+            default:
+                if (currentIndex < currentPlaylist.size() - 1) {
+                    return currentIndex + 1;
+                } else {
+                    return -1; // 顺序播放，到达列表末尾
                 }
-                // 如果当前正在播放，或者已经预加载了这首歌，或者预加载的是当前正在播放的歌，则不进行预加载
-                if (mediaPlayer.isPlaying() || (preloadedSong != null && preloadedSong.equals(songToPreload)) || (currentSong.get() != null && currentSong.get().equals(songToPreload))) {
-                    System.out.println("MediaPlayerService: Skipping preload, already playing or preloaded: " + songToPreload.getTitle());
-                    return null;
+        }
+    }
+
+    /**
+     * 根据当前播放模式获取上一首歌曲的索引。
+     * @return 上一首歌曲的索引，如果当前模式下没有上一首则返回 -1。
+     */
+    private int getPreviousSongIndex() {
+        if (currentPlaylist.isEmpty()) return -1;
+
+        int currentIndex = currentSongIndex.get();
+        // 如果当前没有歌曲在播放，默认从第一首开始
+        if (currentIndex == -1 && !currentPlaylist.isEmpty()) {
+            return 0;
+        }
+
+        switch (playbackMode.get()) {
+            case REPEAT_ONE:
+                return currentIndex; // 单曲循环，始终返回当前歌曲
+            case SHUFFLE:
+                if (currentPlaylist.size() <= 1) return currentIndex;
+                int newIndex;
+                do {
+                    newIndex = random.nextInt(currentPlaylist.size());
+                } while (newIndex == currentIndex && currentPlaylist.size() > 1);
+                return newIndex;
+            case REPEAT_ALL:
+                return (currentIndex - 1 + currentPlaylist.size()) % currentPlaylist.size(); // 列表循环
+            case NORMAL:
+            default:
+                if (currentIndex > 0) {
+                    return currentIndex - 1;
+                } else {
+                    return -1; // 顺序播放，到达列表开头
                 }
-
-                File mediaFile = new File(songToPreload.getLocalFilePath());
-                if (!mediaFile.exists()) {
-                    System.err.println("MediaPlayerService: Preload failed, file not found: " + songToPreload.getLocalFilePath());
-                    return null;
-                }
-
-                System.out.println("MediaPlayerService: Attempting to preload: " + songToPreload.getTitle());
-
-                // 切换回 JavaFX Application Thread 执行实际的 VLCJ 预加载操作
-                Platform.runLater(() -> {
-                    // 停止当前可能存在的预加载或播放
-                    mediaPlayer.stop(); // 这会清除 isPreloading 和 preloadedSong
-
-                    // 设置预加载标志
-                    isPreloading = true;
-                    preloadedSong = songToPreload;
-
-                    // 静音并开始播放，然后立即暂停，以触发缓冲
-                    mediaPlayer.setVolume(0); // 预加载时静音
-                    boolean success = mediaPlayer.playMedia(songToPreload.getLocalFilePath());
-
-                    if (!success) {
-                        System.err.println("MediaPlayerService: Failed to start preloading media " + songToPreload.getLocalFilePath());
-                        isPreloading = false;
-                        preloadedSong = null;
-                        mediaPlayer.setVolume(originalVolume); // 恢复音量
-                    }
-                });
-                return null;
-            }
-        };
-        new Thread(preloadTask).start();
+        }
     }
 
     /**
@@ -407,18 +392,19 @@ public class MediaPlayerService {
         return currentSong;
     }
 
-    public void setLoopMode(boolean loop) {
-        this.loopMode.set(loop);
-        if (loop) { // 如果开启单曲循环，关闭随机播放
-            this.shuffleMode.set(false);
-        }
+    public ObjectProperty<PlaybackMode> playbackModeProperty() {
+        return playbackMode;
     }
-    public void setShuffleMode(boolean shuffle) {
-        this.shuffleMode.set(shuffle);
-        if (shuffle) { // 如果开启随机播放，关闭单曲循环
-            this.loopMode.set(false);
-        }
+
+    /**
+     * 设置播放模式。
+     * @param mode 新的播放模式
+     */
+    public void setPlaybackMode(PlaybackMode mode) {
+        this.playbackMode.set(mode);
+        System.out.println("MediaPlayerService: Playback mode set to " + mode);
     }
+
     public long getVlcjMediaPlayerLength() {
         return mediaPlayer.getLength();
     }

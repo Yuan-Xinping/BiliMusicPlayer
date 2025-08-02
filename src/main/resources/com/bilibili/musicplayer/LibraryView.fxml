@@ -6,12 +6,20 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.TextField?>
 
 <VBox fx:id="rootView" alignment="TOP_CENTER" spacing="20" styleClass="main-content" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.LibraryController">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
     <Label text="我的音乐" styleClass="view-title"/>
+
+    <HBox alignment="CENTER_LEFT" spacing="5.0">
+        <Label text="搜索:"/>
+        <!-- 这里添加 styleClass="text-field" -->
+        <TextField fx:id="searchField" promptText="按标题或艺术家搜索..." HBox.hgrow="ALWAYS" styleClass="text-field"/>
+    </HBox>
 
     <TableView fx:id="songTableView" VBox.vgrow="ALWAYS">
         <columns>

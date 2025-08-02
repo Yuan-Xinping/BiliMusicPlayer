@@ -1,9 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.geometry.Insets?>
 
 <VBox fx:id="rootView" alignment="TOP_CENTER" spacing="10" styleClass="sidebar" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.LeftSidebarController">
-    <Button text="我的音乐" onAction="#handleLibraryClick" styleClass="sidebar-button"/>
-    <Button text="下载管理" onAction="#handleDownloadClick" styleClass="sidebar-button"/>
-    <Button text="设置" onAction="#handleSettingsClick" styleClass="sidebar-button"/>
+    <padding>
+        <Insets top="20" left="10" right="10" bottom="10"/>
+    </padding>
+
+    <!-- 添加 fx:id -->
+    <Button fx:id="libraryButton" onAction="#handleLibraryClick" styleClass="sidebar-button" contentDisplay="LEFT">
+        <graphic>
+            <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                <image>
+                    <Image url="@/icons/music_library.png" />
+                </image>
+            </ImageView>
+        </graphic>
+        <text>我的音乐</text>
+    </Button>
+    <!-- 添加 fx:id -->
+    <Button fx:id="downloadButton" onAction="#handleDownloadClick" styleClass="sidebar-button" contentDisplay="LEFT">
+        <graphic>
+            <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                <image>
+                    <Image url="@/icons/download.png" />
+                </image>
+            </ImageView>
+        </graphic>
+        <text>下载管理</text>
+    </Button>
+    <!-- 添加 fx:id -->
+    <Button fx:id="settingsButton" onAction="#handleSettingsClick" styleClass="sidebar-button" contentDisplay="LEFT">
+        <graphic>
+            <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                <image>
+                    <Image url="@/icons/settings.png" />
+                </image>
+            </ImageView>
+        </graphic>
+        <text>设置</text>
+    </Button>
 </VBox>

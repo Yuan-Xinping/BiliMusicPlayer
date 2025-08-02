@@ -1,28 +1,313 @@
 /* src/main/resources/css/style.css */
+
+
+/* --- 颜色变量 --- */
+/* 统一使用更现代的浅色调和强调色 */
 .root {
-    -fx-background-color: #282828; /* 深灰色背景 */
+    -primary-bg: #F9F9F9; /* 最浅背景色，用于主内容区 */
+    -secondary-bg: #EEEEEE; /* 次浅背景色，用于侧边栏 */
+    -tertiary-bg: #E0E0E0; /* 播放条和一些组件背景 */
+    -hover-bg: #E8E8E8; /* 浅色背景上的悬停色 */
+    -selected-bg: #D8D8D8; /* 浅色背景上的选中色 */
+
+    -accent-color: #1ED760; /* 主强调色：Spotify绿 */
+    -accent-hover: #1FDF64; /* 强调色悬停 */
+    -accent-pressed: #15883E; /* 强调色按下 */
+
+    -text-primary: #333333; /* 主要文本颜色 */
+    -text-secondary: #666666; /* 次要文本颜色，如时间、提示文本 */
+    -text-muted: #999999; /* 更淡的文本，如搜索框提示 */
+
+    -border-color: #CCCCCC; /* 边框颜色 */
+    -separator-color: #BBBBBB; /* 分隔线颜色 */
+
+    -fx-background-color: -primary-bg;
+    -fx-font-family: "Microsoft YaHei UI", "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: -text-primary;
 }
-/* 确保你的FXML根元素有这个styleClass，或者直接设置-fx-background-color */
+
+/* --- 侧边栏样式 --- */
 .sidebar {
-    -fx-background-color: #000000;
+    -fx-background-color: -secondary-bg; /* 侧边栏背景色 */
+    -fx-padding: 20px 10px;
+    -fx-spacing: 8px;
+    -fx-pref-width: 200px;
 }
+
 .sidebar-button {
     -fx-background-color: transparent;
-    -fx-text-fill: #b3b3b3;
-    -fx-font-size: 16px;
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 15px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 12px 15px;
+    -fx-pref-width: 180px;
+    -fx-background-radius: 4px; /* 稍小的圆角 */
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 10px;
 }
+
+.sidebar-button:hover {
+    -fx-background-color: -hover-bg;
+    -fx-text-fill: -text-primary;
+}
+
+.sidebar-button:pressed {
+    -fx-background-color: -selected-bg;
+    -fx-text-fill: -text-primary;
+}
+
+/* 侧边栏选中状态 - 匹配截图的亮绿色背景 */
+.sidebar-button-active {
+    -fx-background-color: -accent-color; /* 选中时的亮绿色背景 */
+    -fx-text-fill: -text-primary; /* 选中时的白色文本 */
+}
+/* 确保选中状态的hover和pressed效果也协调 */
+.sidebar-button-active:hover {
+    -fx-background-color: -accent-hover; /* 选中状态下hover更亮一点 */
+}
+.sidebar-button-active:pressed {
+    -fx-background-color: -accent-pressed; /* 选中状态下pressed更深一点 */
+}
+/* 侧边栏按钮中的 ImageView (图标) 样式，如果图标是可染色的，可以通过这里改变颜色 */
+/* 注意：如果图标是PNG等位图，此样式可能无效，需要准备白色图标 */
+.sidebar-button .graphic {
+    -fx-fill: -text-secondary; /* 默认图标颜色 */
+}
+.sidebar-button:hover .graphic,
+.sidebar-button-active .graphic {
+    -fx-fill: -text-primary; /* 悬停和选中时图标颜色变白 */
+}
+
+
+/* --- 主内容区域样式 --- */
 .main-content {
-    -fx-background-color: #121212;
+    -fx-background-color: -primary-bg;
+    -fx-padding: 25px;
 }
+
 .view-title {
-    -fx-text-fill: white;
-    -fx-font-size: 24px;
+    -fx-text-fill: -text-primary;
+    -fx-font-size: 32px;
     -fx-font-weight: bold;
+    -fx-padding: 0 0 15px 0;
 }
+
 .status-label {
-    -fx-text-fill: #b3b3b3;
-    -fx-font-size: 14px;
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 13px;
+    -fx-padding: 10px 0 0 0;
 }
+
+/* --- 文本输入框样式 --- */
+.text-field {
+    -fx-background-color: -hover-bg; /* 背景色 */
+    -fx-text-fill: -text-primary;
+    -fx-prompt-text-fill: -text-muted;
+    -fx-border-color: -hover-bg; /* 默认边框与背景色一致，制造无边框感 */
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 8px 12px;
+}
+
+.text-field:focused {
+    -fx-border-color: -accent-color; /* 聚焦时的强调色 */
+    -fx-background-color: -selected-bg; /* 聚焦时背景稍亮 */
+    -fx-effect: innershadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 0); /* 轻微内阴影 */
+}
+
+/* --- 普通按钮样式 (用于下载管理等，如果需要的话) --- */
+.button {
+    -fx-background-color: -accent-color;
+    -fx-text-fill: -text-primary; /* 通常强调色按钮上的文字是白色，这里保持与-text-primary一致 */
+    -fx-font-size: 14px;
+    -fx-padding: 8px 18px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 2);
+}
+
+.button:hover {
+    -fx-background-color: -accent-hover;
+}
+
+.button:pressed {
+    -fx-background-color: -accent-pressed;
+    -fx-effect: none;
+}
+
+/* --- 播放控制条样式 --- */
 .playback-bar {
-    -fx-background-color: #181818;
+    -fx-background-color: -tertiary-bg; /* 播放条背景色 */
+    -fx-padding: 10px 25px; /* 与 FXML 中的 padding 保持一致 */
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 15px; /* 主组之间的间距 */
+    -fx-border-color: -secondary-bg; /* 顶部边框，与侧边栏融合 */
+    -fx-border-width: 1px 0 0 0;
+}
+
+.playback-icon-button {
+    -fx-background-color: transparent;
+    -fx-padding: 8px;
+    -fx-background-radius: 50%;
+    -fx-cursor: hand;
+}
+
+.playback-icon-button:hover {
+    -fx-background-color: -hover-bg;
+}
+
+.playback-icon-button:pressed {
+    -fx-background-color: -selected-bg;
+}
+
+/* 播放/暂停按钮特殊处理 - 匹配截图的白色圆形突出效果 */
+#playPauseButton {
+    -fx-background-color: transparent;
+    -fx-padding: 8px;
+    -fx-background-radius: 50%;
+    -fx-cursor: hand;
+}
+#playPauseButton:hover {
+    -fx-background-color: -hover-bg;
+}
+#playPauseButton:pressed {
+    -fx-background-color: -selected-bg;
+}
+/* 确保播放/暂停按钮的图标是白色的 */
+#playPauseButton .graphic {
+    -fx-fill: #FFFFFF; /* 假设图标是可填充的SVG或Path */
+}
+
+
+.current-song-label {
+    -fx-text-fill: -text-primary;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-max-width: 250px; /* 限制宽度以允许截断 */
+    -fx-text-overflow: ellipsis; /* 文本溢出显示省略号 (Label 默认不支持，需要自定义或绑定) */
+}
+
+.time-label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-size: 13px;
+    -fx-min-width: 40px; /* 确保时间显示有足够的最小宽度 */
+    -fx-alignment: CENTER_RIGHT; /* 时间文本右对齐，使其看起来更整洁 */
+}
+
+/* --- 进度条 (Slider) 样式 --- */
+.slider {
+    -fx-padding: 0 5px; /* 为滑块提供轻微的水平内边距 */
+}
+.slider .track {
+    -fx-background-color: -hover-bg; /* 轨道颜色 */
+    -fx-background-radius: 5px;
+    -fx-pref-height: 4px;
+}
+
+.slider .thumb {
+    -fx-background-color: -accent-color; /* 滑块颜色 */
+    -fx-background-radius: 10px;
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 8, 0, 0, 3);
+}
+
+.slider:hover .thumb {
+    -fx-background-color: -accent-hover;
+}
+
+/* --- 进度条 (ProgressBar) 样式 (如果下载管理用到) --- */
+.progress-bar {
+    -fx-control-inner-background: -hover-bg;
+    -fx-background-color: -hover-bg;
+    -fx-background-radius: 5px;
+    -fx-pref-height: 8px;
+}
+
+.progress-bar .bar {
+    -fx-background-color: -accent-color;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5px;
+}
+
+/* --- 表格视图 (TableView) 样式 --- */
+.table-view {
+    -fx-base: -primary-bg;
+    -fx-control-inner-background: -primary-bg;
+    -fx-background-color: -primary-bg;
+    -fx-border-width: 0; /* 移除外边框 */
+    -fx-background-radius: 5px;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -tertiary-bg; /* 表头背景 */
+    -fx-border-color: -separator-color; /* 表头底部边框 */
+    -fx-border-width: 0 0 1px 0;
+    -fx-background-radius: 5px 5px 0 0;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: -text-secondary;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 0;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: -text-primary;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 10px 5px;
+}
+
+.table-view .table-row-cell {
+    -fx-background-color: -primary-bg;
+    -fx-border-color: -separator-color; /* 行之间的分隔线 */
+    -fx-border-width: 0 0 1px 0;
+}
+
+.table-view .table-row-cell:empty {
+    -fx-background-color: -primary-bg;
+    -fx-border-width: 0;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: -selected-bg; /* 选中行背景 */
+    -fx-text-fill: -text-primary;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: -hover-bg; /* 鼠标悬停行背景 */
+}
+
+/* --- 滚动条样式 --- */
+.scroll-bar:vertical .track-background,
+.scroll-bar:horizontal .track-background {
+    -fx-background-color: -hover-bg;
+    -fx-background-radius: 5px;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: -text-secondary; /* 滚动条滑块颜色 */
+    -fx-background-radius: 5px;
+}
+
+.scroll-bar:vertical .thumb:hover,
+.scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: -text-primary; /* 悬停时滑块颜色变深 */
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " "; /* 隐藏箭头 */
 }

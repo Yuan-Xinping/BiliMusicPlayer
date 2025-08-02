@@ -12,49 +12,84 @@
 
 <HBox fx:id="rootView" alignment="CENTER_LEFT" spacing="15" styleClass="playback-bar" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.PlaybackController">
     <padding>
-        <Insets top="10" right="20" bottom="10" left="20"/>
+        <Insets top="10" right="25" bottom="10" left="25"/>
     </padding>
 
-    <!-- 播放/暂停按钮 -->
-    <Button fx:id="playPauseButton" onAction="#handlePlayPause">
-        <graphic>
-            <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
-                <image>
-                    <!-- 初始图标可以是播放或暂停，这里用一个占位符，实际会通过CSS或代码切换 -->
-                    <Image url="@/icons/play_icon.png" />
-                </image>
-            </ImageView>
-        </graphic>
-    </Button>
+    <!-- 组 1: 播放控制按钮 (左侧) -->
+    <HBox alignment="CENTER_LEFT" spacing="8">
+        <!-- 播放模式切换按钮 (Normal, Repeat All, Repeat One, Shuffle) -->
+        <Button fx:id="playbackModeButton" styleClass="playback-icon-button" onAction="#handleTogglePlaybackMode"> <!-- 添加 onAction -->
+            <graphic>
+                <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@/icons/normal.png" />
+                    </image>
+                </ImageView>
+            </graphic>
+        </Button>
 
-    <!-- 停止按钮 -->
-    <Button fx:id="stopButton" onAction="#handleStop">
-        <graphic>
-            <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
-                <image>
-                    <Image url="@/icons/stop_icon.png" />
-                </image>
-            </ImageView>
-        </graphic>
-    </Button>
+        <!-- 上一首按钮 -->
+        <Button fx:id="prevButton" styleClass="playback-icon-button" onAction="#handlePrevious"> <!-- 添加 onAction -->
+            <graphic>
+                <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@/icons/previous.png" />
+                    </image>
+                </ImageView>
+            </graphic>
+        </Button>
 
-    <!-- 当前歌曲信息 -->
-    <Label fx:id="currentSongLabel" text="未选择歌曲" styleClass="current-song-label" HBox.hgrow="NEVER"/>
+        <!-- 播放/暂停按钮 -->
+        <Button fx:id="playPauseButton" styleClass="playback-icon-button" onAction="#handlePlayPause"> <!-- 添加 onAction -->
+            <graphic>
+                <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <!-- 初始图标是播放，实际会通过代码切换 -->
+                        <Image url="@/icons/play.png" />
+                    </image>
+                </ImageView>
+            </graphic>
+        </Button>
 
-    <!-- 进度条和时间 -->
-    <Label fx:id="currentTimeLabel" text="00:00" styleClass="time-label"/>
-    <Slider fx:id="progressBar" min="0" max="1" HBox.hgrow="ALWAYS"/>
-    <Label fx:id="totalTimeLabel" text="00:00" styleClass="time-label"/>
+        <!-- 停止按钮 -->
+        <Button fx:id="stopButton" styleClass="playback-icon-button" onAction="#handleStop"> <!-- 添加 onAction -->
+            <graphic>
+                <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@/icons/stop.png" />
+                    </image>
+                </ImageView>
+            </graphic>
+        </Button>
 
-    <!-- 占位符，用于将音量控制推到右边 -->
-    <Region HBox.hgrow="ALWAYS"/>
+        <!-- 下一首按钮 -->
+        <Button fx:id="nextButton" styleClass="playback-icon-button" onAction="#handleNext"> <!-- 添加 onAction -->
+            <graphic>
+                <ImageView fitHeight="24" fitWidth="24" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@/icons/next.png" />
+                    </image>
+                </ImageView>
+            </graphic>
+        </Button>
+    </HBox>
 
-    <!-- 音量控制 -->
-    <ImageView fitHeight="20" fitWidth="20" pickOnBounds="true" preserveRatio="true">
-        <image>
-            <Image url="@/icons/volume_icon.png" />
-        </image>
-    </ImageView>
-    <Slider fx:id="volumeSlider" min="0" max="100" value="100" prefWidth="100"/>
+    <!-- 组 2: 歌曲信息和进度条 (中间，占据大部分空间) -->
+    <HBox alignment="CENTER_LEFT" spacing="10" HBox.hgrow="ALWAYS">
+        <Label fx:id="currentSongLabel" text="未选择歌曲" styleClass="current-song-label"/>
+        <Label fx:id="currentTimeLabel" text="00:00" styleClass="time-label"/>
+        <Slider fx:id="progressBar" min="0" max="1" HBox.hgrow="ALWAYS"/>
+        <Label fx:id="totalTimeLabel" text="00:00" styleClass="time-label"/>
+    </HBox>
+
+    <!-- 组 3: 音量控制 (右侧) -->
+    <HBox alignment="CENTER_RIGHT" spacing="5">
+        <ImageView fitHeight="20" fitWidth="20" pickOnBounds="true" preserveRatio="true">
+            <image>
+                <Image url="@/icons/volume.png" />
+            </image>
+        </ImageView>
+        <Slider fx:id="volumeSlider" min="0" max="100" value="100" prefWidth="80"/>
+    </HBox>
 
 </HBox>

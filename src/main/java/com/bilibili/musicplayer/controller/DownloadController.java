@@ -25,7 +25,8 @@ public class DownloadController implements Initializable {
     @FXML private ProgressBar progressBar;
     @FXML private Label statusLabel;
 
-    private MainController mainController;
+    private MainController mainController; // 仍然保留，用于 showView 等通用操作
+    private LibraryController libraryController; // 新增：用于通知 LibraryController 添加歌曲
     private SongDAO songDAO;
 
     @Override
@@ -38,6 +39,14 @@ public class DownloadController implements Initializable {
 
     public void setMainController(MainController mainController) {
         this.mainController = mainController;
+    }
+
+    /**
+     * 新增方法：设置 LibraryController 实例，用于通知其添加新下载的歌曲。
+     * @param libraryController LibraryController 实例
+     */
+    public void setLibraryController(LibraryController libraryController) {
+        this.libraryController = libraryController;
     }
 
     /**
@@ -75,7 +84,7 @@ public class DownloadController implements Initializable {
             return;
         }
         // 简单的BV号格式检查 (BV开头，后面是数字和字母)
-        if (!input.startsWith("BV") || input.length() != 12) {
+        if (!input.startsWith("BV") || input.length() != 12) { // BV号通常是12位
             statusLabel.setText("请输入有效的BV号 (例如: BV1qD4y1U7fs)！");
             return;
         }
@@ -105,11 +114,14 @@ public class DownloadController implements Initializable {
                 if (songDAO.saveSong(downloadedSong)) {
                     statusLabel.setText("下载成功并已保存: " + downloadedSong.getTitle());
                     System.out.println("下载完成的歌曲信息: " + downloadedSong);
-                    if (mainController != null && mainController.getLibraryViewController() != null) {
+                    // 通知 LibraryController 添加新歌曲，而不是刷新整个列表
+                    if (libraryController != null) { // 使用新增的 libraryController 引用
                         Platform.runLater(() -> {
-                            mainController.getLibraryViewController().addSong(downloadedSong);
-                            mainController.getLibraryViewController().refreshSongs();
+                            libraryController.addSong(downloadedSong);
+                            // libraryController.refreshSongs(); // addSong 内部已处理，无需再次刷新
                         });
+                    } else {
+                        System.err.println("LibraryController is not set in DownloadController. Cannot add song to library UI.");
                     }
                 } else {
                     statusLabel.setText("下载成功，但保存到数据库失败: " + downloadedSong.getTitle());
@@ -118,6 +130,7 @@ public class DownloadController implements Initializable {
                 statusLabel.setText("下载任务成功完成，但未返回歌曲信息。");
             }
             progressBar.setProgress(1);
+            urlField.setText(""); // 清空输入框
         });
 
         downloadTask.setOnFailed(event -> {
@@ -130,6 +143,14 @@ public class DownloadController implements Initializable {
             System.err.println(errorMessage);
             if (exception != null) {
                 exception.printStackTrace();
+                // 弹出错误对话框，提供更友好的用户反馈
+                Platform.runLater(() -> {
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    alert.setTitle("下载错误");
+                    alert.setHeaderText("Bilibili 音频下载失败");
+                    alert.setContentText(errorMessage + "\n\n请检查网络连接、Bilibili 链接是否有效，或确保 yt-dlp 已正确安装并配置在系统 PATH 中。");
+                    alert.showAndWait();
+                });
             }
             progressBar.setProgress(0);
         });
