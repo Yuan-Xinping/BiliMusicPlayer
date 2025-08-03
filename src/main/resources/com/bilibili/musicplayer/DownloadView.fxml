@@ -1,30 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.Spinner?>
 
-<VBox fx:id="rootView" alignment="TOP_CENTER" spacing="20" styleClass="main-content" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.DownloadController">
-    <padding>
-        <Insets top="20" left="20" right="20" bottom="20"/>
-    </padding>
-    <Label text="下载管理" styleClass="view-title"/>
+<HBox fx:id="rootView" alignment="TOP_LEFT" spacing="0" styleClass="main-content" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.DownloadController">
+    <!-- 右侧内容区域 (DownloadView 的主要内容) -->
+    <VBox HBox.hgrow="ALWAYS" alignment="TOP_CENTER" spacing="20">
+        <padding>
+            <Insets top="20" right="20" bottom="20" left="20"/>
+        </padding>
+        <Label text="Bilibili 音乐下载" styleClass="view-title"/>
 
-    <HBox alignment="CENTER_LEFT" spacing="10">
-        <Label text="B站链接/BV号:" styleClass="status-label"/>
-        <TextField fx:id="urlField" promptText="请输入B站视频链接或BV号" HBox.hgrow="ALWAYS"/>
-        <!-- 更改了原有的downloadButton，并新增一个按钮 -->
-        <Button fx:id="downloadByUrlButton" text="按链接下载" onAction="#handleDownloadByUrlClick"/>
-        <Button fx:id="downloadByBvButton" text="按BV号下载" onAction="#handleDownloadByBvClick"/>
-    </HBox>
+        <HBox alignment="CENTER_LEFT" spacing="5.0">
+            <Label text="URL/BV号:"/>
+            <TextField fx:id="urlField" promptText="输入Bilibili视频链接或BV号..." HBox.hgrow="ALWAYS" styleClass="text-field"/>
+            <Button fx:id="downloadByUrlButton" text="按链接下载" onAction="#handleDownloadByUrlClick"/>
+            <Button fx:id="downloadByBvButton" text="按BV号下载" onAction="#handleDownloadByBvClick"/>
+        </HBox>
 
-    <ProgressBar fx:id="progressBar" prefWidth="400" progress="0.0"/>
+        <Separator prefWidth="200" style="-fx-background-color: #444; -fx-padding: 5 0;"/>
+        <HBox alignment="CENTER_LEFT" spacing="10.0">
+            <Label text="批量导入与下载:"/>
+            <Button fx:id="btnImportFromFile" text="从文件导入 (JSON)" onAction="#handleImportFromFile"/>
+            <Label text="并发数:"/>
+            <Spinner fx:id="maxConcurrentDownloadsSpinner" editable="true"/>
+            <Button fx:id="btnCancelBatchDownload" text="取消批量下载" onAction="#handleCancelBatchDownload" disable="true"/>
+        </HBox>
 
-    <Label fx:id="statusLabel" text="等待输入链接..." styleClass="status-label"/>
+        <Label text="单个任务状态:" styleClass="section-label"/>
+        <ProgressBar fx:id="progressBar" prefWidth="300"/>
+        <Label fx:id="statusLabel" text="等待输入链接..." styleClass="status-label"/>
 
-    <Label text="这里是下载管理界面" styleClass="status-label"/>
-</VBox>
+        <Label text="批量下载日志:" styleClass="section-label"/>
+        <ProgressBar fx:id="batchOverallProgressBar" prefWidth="300"/>
+        <Label fx:id="batchOverallStatusLabel" text="无批量下载任务。" styleClass="status-label"/>
+        <ListView fx:id="batchLogListView" VBox.vgrow="ALWAYS" styleClass="log-list-view"/>
+
+    </VBox>
+</HBox>

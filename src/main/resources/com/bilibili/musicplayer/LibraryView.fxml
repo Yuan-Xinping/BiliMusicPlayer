@@ -22,13 +22,11 @@
         <Label text="音乐库" styleClass="sidebar-section-title"/>
         <Button text="本地音乐" fx:id="btnLocalMusic" prefWidth="200" styleClass="sidebar-sub-button">
             <graphic>
-                <!-- 修正为 Ikonli 2.6.0 兼容的图标名称：mdi-music-note -->
                 <FontIcon iconLiteral="mdi-music-note" iconSize="18"/>
             </graphic>
         </Button>
         <Button text="我喜欢" fx:id="btnFavorites" prefWidth="200" styleClass="sidebar-sub-button">
             <graphic>
-                <!-- 修正为 Ikonli 2.6.0 兼容的图标名称：mdi-heart -->
                 <FontIcon iconLiteral="mdi-heart" iconSize="18"/>
             </graphic>
         </Button>
@@ -39,7 +37,6 @@
             <Label text="播放列表" styleClass="sidebar-section-title"/>
             <Button fx:id="btnCreatePlaylist" styleClass="icon-button">
                 <graphic>
-                    <!-- 修正为 Ikonli 2.6.0 兼容的图标名称：mdi-plus -->
                     <FontIcon iconLiteral="mdi-plus" iconSize="18"/>
                 </graphic>
             </Button>
@@ -59,6 +56,8 @@
         <HBox alignment="CENTER_LEFT" spacing="5.0">
             <Label text="搜索:"/>
             <TextField fx:id="searchField" promptText="按标题或艺术家搜索..." HBox.hgrow="ALWAYS" styleClass="text-field"/>
+            <!-- NEW: Export Button -->
+            <Button fx:id="btnExport" text="导出当前列表" onAction="#handleExportCurrentView"/>
         </HBox>
 
         <TableView fx:id="songTableView" VBox.vgrow="ALWAYS">
@@ -88,7 +87,6 @@
                         <javafx.scene.control.cell.PropertyValueFactory property="localFilePath" />
                     </cellValueFactory>
                 </TableColumn>
-                <!-- 更多列可以根据需要添加 -->
             </columns>
             <columnResizePolicy>
                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

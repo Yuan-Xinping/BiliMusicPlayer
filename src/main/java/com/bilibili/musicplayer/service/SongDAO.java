@@ -27,8 +27,8 @@ public class SongDAO {
         String updateSQL = "UPDATE songs SET title=?, artist=?, bilibili_url=?, local_file_path=?, cover_url=?, duration_seconds=?, download_date=?, is_favorite=? WHERE id=?";
 
         try (Connection conn = DatabaseManager.getConnection()) {
-            // 尝试查询是否存在该ID的歌曲
-            if (getSongById(song.getId(), conn) != null) { // 传入连接
+            // 尝试查询是否存在该ID的歌曲，使用新的公共方法
+            if (getSongById(song.getId()) != null) { // MODIFIED: 使用新的 getSongById 方法
                 try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
                     pstmt.setString(1, song.getTitle());
                     pstmt.setString(2, song.getArtist());
@@ -68,12 +68,35 @@ public class SongDAO {
 
     /**
      * 根据ID获取歌曲信息。
+     * 此方法内部管理数据库连接。
+     * @param id 歌曲ID
+     * @return 歌曲对象，如果不存在则返回null
+     */
+    public Song getSongById(String id) { // NEW: 公共方法，内部管理连接
+        String sql = "SELECT * FROM songs WHERE id = ?";
+        try (Connection conn = DatabaseManager.getConnection(); // 内部获取连接
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToSong(rs);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("根据ID获取歌曲失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 根据ID获取歌曲信息。
      * @param id 歌曲ID
      * @param conn 外部传入的数据库连接，用于事务或避免重复连接
      * @return 歌曲对象，如果不存在则返回null
      * @throws SQLException 如果读取数据失败
      */
-    public Song getSongById(String id, Connection conn) throws SQLException {
+    public Song getSongById(String id, Connection conn) throws SQLException { // 现有方法，保留用于内部/事务使用
         String sql = "SELECT * FROM songs WHERE id = ?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, id);

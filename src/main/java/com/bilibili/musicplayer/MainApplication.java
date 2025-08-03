@@ -16,9 +16,6 @@ import javafx.stage.StageStyle;
 
 import java.io.IOException;
 
-// 导入 Ikonli 相关的类
-// import org.kordamp.ikonli.Ikonli; // 移除此行，Ikonli 2.x 不再提供静态 register 方法
-// import org.kordamp.ikonli.materialdesign.MaterialDesign; // 移除此行，不再需要引用 MaterialDesign 类进行注册
 
 public class MainApplication extends Application {
 
@@ -28,7 +25,6 @@ public class MainApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         this.primaryStage = stage;
-        // Ikonli.register(MaterialDesign.MDI_HOME); // 移除此行，Ikonli 2.x 不再需要手动注册图标包，它会自动发现
 
         // 1. 显示一个简单的加载界面（Splash Screen）
         showSplashScreen();

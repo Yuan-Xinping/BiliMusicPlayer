@@ -23,14 +23,19 @@ import javafx.stage.Stage;
 import javafx.scene.layout.GridPane;
 import javafx.geometry.Insets;
 import javafx.application.Platform;
-import javafx.scene.Parent;
+
+import com.fasterxml.jackson.databind.ObjectMapper; // 导入 Jackson
+import com.fasterxml.jackson.databind.SerializationFeature; // 用于美化输出
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.function.Predicate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors; // 用于 Java 8 Stream API
 
 public class LibraryController implements Initializable {
 
@@ -45,6 +50,7 @@ public class LibraryController implements Initializable {
     @FXML private TableView<Song> songTableView;
     @FXML private Label statusLabel;
     @FXML private TextField searchField;
+    @FXML private Button btnExport; // NEW: 导出按钮 FXML ID
 
     private SongDAO songDAO;
     private PlaylistDAO playlistDAO;
@@ -53,6 +59,7 @@ public class LibraryController implements Initializable {
     private SortedList<Song> sortedData;
 
     private MediaPlayerService mediaPlayerService;
+    private final ObjectMapper objectMapper = new ObjectMapper(); // NEW: Jackson ObjectMapper 实例
 
     // 当前选中的视图类型
     private enum CurrentView {
@@ -67,6 +74,9 @@ public class LibraryController implements Initializable {
         songDAO = new SongDAO();
         playlistDAO = new PlaylistDAO();
         masterData = FXCollections.observableArrayList();
+
+        // NEW: 配置 ObjectMapper 以美化输出（JSON 格式化）
+        objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
 
         filteredData = new FilteredList<>(masterData, p -> true);
         sortedData = new SortedList<>(filteredData);
@@ -105,6 +115,7 @@ public class LibraryController implements Initializable {
         btnLocalMusic.setOnAction(event -> showLocalMusic());
         btnFavorites.setOnAction(event -> showFavorites());
         btnCreatePlaylist.setOnAction(event -> createNewPlaylist());
+        btnExport.setOnAction(event -> handleExportCurrentView()); // NEW: 导出按钮事件绑定
 
         playlistListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
@@ -164,10 +175,11 @@ public class LibraryController implements Initializable {
     public void addSong(Song song) {
         System.out.println("LibraryController received new song: " + song.getTitle());
         Platform.runLater(() -> {
+            // 仅在当前视图为本地音乐时直接添加，否则 refreshSongs 会在后续处理
             if (currentView == CurrentView.LOCAL_MUSIC) {
                 masterData.add(song);
             }
-            refreshSongs();
+            refreshSongs(); // 刷新以确保正确的排序/过滤和状态更新
         });
     }
 
@@ -236,8 +248,88 @@ public class LibraryController implements Initializable {
         playlistListView.getSelectionModel().select(playlist);
     }
 
+    // NEW: 处理导出按钮点击事件
+    @FXML
+    private void handleExportCurrentView() {
+        List<Song> songsToExport;
+        String defaultFileNamePrefix;
 
-    // --- 歌曲右键菜单 ---
+        switch (currentView) {
+            case LOCAL_MUSIC:
+                songsToExport = songDAO.getAllSongs();
+                defaultFileNamePrefix = "LocalMusic";
+                break;
+            case FAVORITES:
+                songsToExport = songDAO.getFavoriteSongs();
+                defaultFileNamePrefix = "Favorites";
+                break;
+            case PLAYLIST:
+                if (currentSelectedPlaylist != null) {
+                    songsToExport = playlistDAO.getSongsInPlaylist(currentSelectedPlaylist.getId());
+                    // 清理播放列表名称，使其适合作为文件名
+                    defaultFileNamePrefix = currentSelectedPlaylist.getName().replaceAll("[^a-zA-Z0-9-_.]", "_");
+                } else {
+                    statusLabel.setText("请选择一个播放列表进行导出。");
+                    return;
+                }
+                break;
+            default:
+                statusLabel.setText("无法导出当前视图。");
+                return;
+        }
+
+        if (songsToExport.isEmpty()) {
+            statusLabel.setText("当前视图中没有歌曲可供导出。");
+            return;
+        }
+
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("导出歌曲信息");
+        fileChooser.setInitialFileName(defaultFileNamePrefix + "_Export.json");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+
+        Stage stage = (Stage) rootView.getScene().getWindow();
+        File file = fileChooser.showSaveDialog(stage);
+
+        if (file != null) {
+            try {
+                // 将 Song 对象映射为 Map 列表，以便序列化为 JSON
+                List<Map<String, String>> exportData = songsToExport.stream()
+                        .map(song -> {
+                            Map<String, String> songMap = new HashMap<>();
+                            songMap.put("id", song.getId());
+                            songMap.put("title", song.getTitle());
+                            songMap.put("artist", song.getArtist());
+                            songMap.put("bilibiliUrl", song.getBilibiliUrl());
+                            songMap.put("coverUrl", song.getCoverUrl());
+                            songMap.put("durationSeconds", String.valueOf(song.getDurationSeconds())); // 转换为字符串
+                            songMap.put("isFavorite", String.valueOf(song.isFavorite())); // 转换为字符串
+                            songMap.put("localFilePath", song.getLocalFilePath());
+                            songMap.put("downloadDate", song.getDownloadDate().toString());
+                            return songMap;
+                        })
+                        .collect(Collectors.toList());
+
+                objectMapper.writeValue(file, exportData);
+                statusLabel.setText("成功导出 " + songsToExport.size() + " 首歌曲到: " + file.getAbsolutePath());
+            } catch (IOException e) {
+                statusLabel.setText("导出失败: " + e.getMessage());
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("导出错误");
+                    alert.setHeaderText("导出歌曲信息时发生错误");
+                    alert.setContentText("无法保存文件: " + e.getMessage());
+                    alert.showAndWait();
+                });
+            }
+        } else {
+            statusLabel.setText("导出操作已取消。");
+        }
+    }
+
+
+    // --- 歌曲右键菜单 (保持不变) ---
     private ContextMenu createSongContextMenu() {
         ContextMenu contextMenu = new ContextMenu();
 
@@ -256,9 +348,9 @@ public class LibraryController implements Initializable {
             if (selectedSong != null) {
                 boolean newFavoriteStatus = !selectedSong.isFavorite();
                 selectedSong.setFavorite(newFavoriteStatus);
-                if (songDAO.saveSong(selectedSong)) { // 更新数据库
+                if (songDAO.saveSong(selectedSong)) {
                     statusLabel.setText("歌曲 '" + selectedSong.getTitle() + "' 已" + (newFavoriteStatus ? "添加至" : "移出") + "我喜欢。");
-                    refreshSongs(); // 刷新视图
+                    refreshSongs();
                 } else {
                     statusLabel.setText("更新歌曲收藏状态失败。");
                 }
@@ -280,7 +372,7 @@ public class LibraryController implements Initializable {
             Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
             if (selectedSong != null && currentView == CurrentView.PLAYLIST && currentSelectedPlaylist != null) {
                 if (playlistDAO.removeSongFromPlaylist(currentSelectedPlaylist.getId(), selectedSong.getId())) {
-                    refreshSongs(); // 刷新当前播放列表视图
+                    refreshSongs();
                     statusLabel.setText("已将 '" + selectedSong.getTitle() + "' 从 '" + currentSelectedPlaylist.getName() + "' 移除。");
                 } else {
                     statusLabel.setText("从播放列表移除歌曲失败。");
@@ -298,26 +390,21 @@ public class LibraryController implements Initializable {
             }
         });
 
-        // --- 核心改进部分：动态更新菜单项状态和文本 ---
         contextMenu.setOnShowing(event -> {
             Song selectedSong = songTableView.getSelectionModel().getSelectedItem();
             boolean isSongSelected = (selectedSong != null);
 
-            // 播放
             playItem.setDisable(!isSongSelected);
 
-            // 我喜欢/取消收藏
             toggleFavoriteItem.setDisable(!isSongSelected);
             if (isSongSelected) {
                 toggleFavoriteItem.setText(selectedSong.isFavorite() ? "取消收藏" : "添加到我喜欢");
             } else {
-                toggleFavoriteItem.setText("添加到我喜欢"); // 默认文本
+                toggleFavoriteItem.setText("添加到我喜欢");
             }
 
-            // 重命名
             renameItem.setDisable(!isSongSelected);
 
-            // 添加到播放列表
             addToPlaylistMenu.setDisable(!isSongSelected);
             if (isSongSelected) {
                 addToPlaylistMenu.getItems().clear();
@@ -330,12 +417,10 @@ public class LibraryController implements Initializable {
                     for (Playlist playlist : playlists) {
                         MenuItem playlistItem = new MenuItem(playlist.getName());
                         playlistItem.setOnAction(e -> {
-                            // 检查歌曲是否已在该播放列表中，避免重复添加
                             if (playlistDAO.isSongInPlaylist(playlist.getId(), selectedSong.getId())) {
                                 statusLabel.setText("歌曲 '" + selectedSong.getTitle() + "' 已存在于 '" + playlist.getName() + "'。");
                             } else if (playlistDAO.addSongToPlaylist(playlist.getId(), selectedSong.getId())) {
                                 statusLabel.setText("已将 '" + selectedSong.getTitle() + "' 添加到 '" + playlist.getName() + "'");
-                                // 如果当前视图是这个播放列表，则刷新它
                                 if (currentView == CurrentView.PLAYLIST && currentSelectedPlaylist != null && currentSelectedPlaylist.getId().equals(playlist.getId())) {
                                     refreshSongs();
                                 }
@@ -348,12 +433,9 @@ public class LibraryController implements Initializable {
                 }
             }
 
-            // 从播放列表移除
-            // 只有在当前视图是播放列表且有歌曲选中时才启用
             removeFromPlaylist.setVisible(currentView == CurrentView.PLAYLIST);
             removeFromPlaylist.setDisable(!isSongSelected || currentView != CurrentView.PLAYLIST || currentSelectedPlaylist == null);
 
-            // 删除
             deleteItem.setDisable(!isSongSelected);
         });
 
@@ -362,7 +444,7 @@ public class LibraryController implements Initializable {
         return contextMenu;
     }
 
-    // --- 播放列表右键菜单 ---
+    // --- 播放列表右键菜单 (保持不变) ---
     private ContextMenu createPlaylistContextMenu() {
         ContextMenu contextMenu = new ContextMenu();
 
@@ -386,7 +468,7 @@ public class LibraryController implements Initializable {
         return contextMenu;
     }
 
-    // --- 对话框和确认 ---
+    // --- 对话框和确认 (保持不变) ---
 
     private void showRenameSongDialog(Song song) {
         Dialog<Song> dialog = new Dialog<>();
