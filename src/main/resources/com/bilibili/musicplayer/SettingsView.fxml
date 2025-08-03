@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+
+<AnchorPane fx:id="rootView" prefHeight="500.0" prefWidth="700.0" styleClass="main-content-area" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.SettingsController">
+    <children>
+        <TabPane prefHeight="500.0" prefWidth="700.0" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <tabs>
+                <Tab text="下载设置">
+                    <content>
+                        <VBox alignment="TOP_LEFT" prefHeight="200.0" prefWidth="100.0" spacing="15.0">
+                            <padding>
+                                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                            </padding>
+                            <children>
+                                <Label styleClass="setting-category-title" text="下载路径与工具">
+                                    <font>
+                                        <Font name="System Bold" size="14.0" />
+                                    </font>
+                                </Label>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <children>
+                                        <Label prefWidth="120.0" text="下载保存目录:" />
+                                        <TextField fx:id="downloadPathField" editable="false" HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="chooseDownloadPathButton" mnemonicParsing="false" onAction="#handleChooseDownloadPath" text="选择" />
+                                    </children>
+                                </HBox>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <children>
+                                        <Label prefWidth="120.0" text="yt-dlp 路径:" />
+                                        <TextField fx:id="ytDlpPathField" HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="chooseYtDlpPathButton" mnemonicParsing="false" onAction="#handleChooseYtDlpPath" text="选择" />
+                                        <Button fx:id="testYtDlpButton" mnemonicParsing="false" onAction="#handleTestYtDlp" text="检测" />
+                                    </children>
+                                </HBox>
+                                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                    <children>
+                                        <Label prefWidth="120.0" text="ffmpeg 路径:" />
+                                        <TextField fx:id="ffmpegPathField" HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="chooseFfmpegPathButton" mnemonicParsing="false" onAction="#handleChooseFfmpegPath" text="选择" />
+                                        <Button fx:id="testFfmpegButton" mnemonicParsing="false" onAction="#handleTestFfmpeg" text="检测" />
+                                    </children>
+                                </HBox>
+                            </children>
+                        </VBox>
+                    </content>
+                </Tab>
+                <Tab text="关于">
+                    <content>
+                        <VBox alignment="TOP_LEFT" prefHeight="200.0" prefWidth="100.0" spacing="15.0">
+                            <padding>
+                                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                            </padding>
+                            <children>
+                                <Label styleClass="setting-category-title" text="应用信息">
+                                    <font>
+                                        <Font name="System Bold" size="14.0" />
+                                    </font>
+                                </Label>
+                                <Label text="Bili Music Player">
+                                    <font>
+                                        <Font size="14.0" />
+                                    </font>
+                                </Label>
+                                <Label fx:id="appVersionLabel" text="版本: 1.0.0" />
+                                <Label fx:id="ytDlpVersionLabel" text="yt-dlp 版本: N/A" />
+                                <Label fx:id="ffmpegVersionLabel" text="ffmpeg 版本: N/A" />
+                                <Button mnemonicParsing="false" onAction="#handleCheckForUpdates" text="检查更新" />
+                                <Label styleClass="setting-category-title" text="帮助与反馈">
+                                    <font>
+                                        <Font name="System Bold" size="14.0" />
+                                    </font>
+                                </Label>
+                                <Label text="如有问题或建议，请访问我们的 GitHub 页面：">
+                                    <font>
+                                        <Font size="12.0" />
+                                    </font>
+                                </Label>
+                                <Label onMouseClicked="#handleOpenGitHub" styleClass="link-label" text="https://github.com/Yuan-Xinping/my-private-project" />
+                            </children>
+                        </VBox>
+                    </content>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </children>
+</AnchorPane>

@@ -7,21 +7,23 @@
 <BorderPane fx:id="rootPane" stylesheets="@/css/style.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bilibili.musicplayer.controller.MainController">
     <!-- 左侧区域：侧边栏 -->
     <left>
-        <fx:include source="LeftSidebar.fxml" fx:id="leftSidebar"/>
+        <fx:include source="/com/bilibili/musicplayer/LeftSidebar.fxml" fx:id="leftSidebar"/>
     </left>
 
     <!-- 中央区域：主内容区，用于切换不同的视图  -->
     <center>
         <StackPane fx:id="mainContentPane">
-            <!-- 初始显示下载视图 -->
-            <fx:include source="DownloadView.fxml" fx:id="downloadView"/>
-            <!-- 歌曲库视图，默认隐藏 -->
-            <fx:include source="LibraryView.fxml" fx:id="libraryView" visible="false"/>
+            <!-- Library View (default visible) -->
+            <fx:include fx:id="libraryView" source="/com/bilibili/musicplayer/LibraryView.fxml"   />
+            <!-- Download View -->
+            <fx:include fx:id="downloadView" source="/com/bilibili/musicplayer/DownloadView.fxml" />
+            <!-- Settings View (Initially hidden) -->
+            <fx:include fx:id="settingsView" source="/com/bilibili/musicplayer/SettingsView.fxml" />
         </StackPane>
     </center>
 
     <!-- 底部区域：播放控制条 -->
     <bottom>
-        <fx:include source="PlaybackBar.fxml" fx:id="playbackBar"/>
+        <fx:include source="/com/bilibili/musicplayer/PlaybackBar.fxml" fx:id="playbackBar"/>
     </bottom>
 </BorderPane>

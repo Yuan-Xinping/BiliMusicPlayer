@@ -2,6 +2,8 @@
 package com.bilibili.musicplayer;
 
 import com.bilibili.musicplayer.util.VlcjManager;
+import com.bilibili.musicplayer.util.AppConfig; // 导入 AppConfig
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -117,10 +119,12 @@ public class MainApplication extends Application {
             splashStage.hide();
         }
 
+        // FXML 文件路径调整为 /com/bilibili/musicplayer/mainwindow.fxml
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/bilibili/musicplayer/mainwindow.fxml"));
         Parent root = loader.load();
 
-        Scene scene = new Scene(root, 1200, 800);
+        Scene scene = new Scene(root, 1200, 800); // 使用 1200x800 尺寸
+        // CSS 文件路径调整为 /css/style.css
         scene.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
 
         primaryStage.setTitle("Bili Music Player"); // 设置窗口标题

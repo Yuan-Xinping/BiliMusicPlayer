@@ -37,10 +37,8 @@ public class PlaybackController implements Initializable {
 
     private MediaPlayerService mediaPlayerService;
 
-    // 图标资源，统一命名为不带 _icon 后缀
     private Image playIcon;
     private Image pauseIcon;
-    // private Image normalModeIcon; // 已移除 normal 模式，因此不再需要此图标
     private Image repeatAllModeIcon;
     private Image repeatOneModeIcon;
     private Image shuffleModeIcon;
@@ -90,9 +88,8 @@ public class PlaybackController implements Initializable {
             if (playbackModeButton != null) playbackModeButton.setText("模式");
         }
 
-        // --- 进度条拖动事件处理 (修改部分) ---
         progressBar.setOnMousePressed(event -> {
-            isDragging = true; // 用户开始交互 (点击或拖动)
+            isDragging = true;
             // 用户开始拖动时，解除进度条的绑定，使其可以自由移动
             progressBar.valueProperty().unbind();
             // 同时，解除 currentTimeLabel 的绑定，以便手动更新其文本
@@ -125,7 +122,7 @@ public class PlaybackController implements Initializable {
                 double position = dragX / sliderWidth;
 
                 position = Math.max(0.0, Math.min(1.0, position));
-                progressBar.setValue(position); // **关键：手动设置滑块的值**
+                progressBar.setValue(position);
 
                 if (mediaPlayerService != null) {
                     long totalLengthMillis = mediaPlayerService.getVlcjMediaPlayerLength();
@@ -145,7 +142,6 @@ public class PlaybackController implements Initializable {
                 mediaPlayerService.seek(targetPosition);
 
                 // 创建一个临时的ChangeListener来监听progressProperty
-                // 当progressProperty更新到接近目标位置时，再重新绑定
                 ChangeListener<Number> progressListener = new ChangeListener<Number>() {
                     @Override
                     public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
@@ -274,7 +270,6 @@ public class PlaybackController implements Initializable {
         mediaPlayerService.volumeProperty().set((int)volumeSlider.getValue());
     }
 
-    // --- FXML 绑定的事件处理方法 ---
     @FXML
     private void handlePlayPause() {
         if (mediaPlayerService != null) {
@@ -373,11 +368,6 @@ public class PlaybackController implements Initializable {
         String text = ""; // 备用文本
 
         switch (mode) {
-            // 移除 NORMAL 模式的 UI 更新逻辑
-            // case NORMAL:
-            //     iconView = (normalModeIcon != null) ? new ImageView(normalModeIcon) : null;
-            //     text = "顺序";
-            //     break;
             case REPEAT_ALL:
                 iconView = (repeatAllModeIcon != null) ? new ImageView(repeatAllModeIcon) : null;
                 text = "循环";

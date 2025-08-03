@@ -50,7 +50,7 @@ public class LibraryController implements Initializable {
     @FXML private TableView<Song> songTableView;
     @FXML private Label statusLabel;
     @FXML private TextField searchField;
-    @FXML private Button btnExport; // NEW: 导出按钮 FXML ID
+    @FXML private Button btnExport;
 
     private SongDAO songDAO;
     private PlaylistDAO playlistDAO;
@@ -75,7 +75,6 @@ public class LibraryController implements Initializable {
         playlistDAO = new PlaylistDAO();
         masterData = FXCollections.observableArrayList();
 
-        // NEW: 配置 ObjectMapper 以美化输出（JSON 格式化）
         objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
 
         filteredData = new FilteredList<>(masterData, p -> true);
@@ -329,7 +328,6 @@ public class LibraryController implements Initializable {
     }
 
 
-    // --- 歌曲右键菜单 (保持不变) ---
     private ContextMenu createSongContextMenu() {
         ContextMenu contextMenu = new ContextMenu();
 
@@ -444,7 +442,6 @@ public class LibraryController implements Initializable {
         return contextMenu;
     }
 
-    // --- 播放列表右键菜单 (保持不变) ---
     private ContextMenu createPlaylistContextMenu() {
         ContextMenu contextMenu = new ContextMenu();
 
@@ -468,7 +465,6 @@ public class LibraryController implements Initializable {
         return contextMenu;
     }
 
-    // --- 对话框和确认 (保持不变) ---
 
     private void showRenameSongDialog(Song song) {
         Dialog<Song> dialog = new Dialog<>();

@@ -1,7 +1,7 @@
-// src/main/java/com/bilibili/musicplayer/service/BiliDownloader.java
 package com.bilibili.musicplayer.service;
 
 import com.bilibili.musicplayer.model.Song;
+import com.bilibili.musicplayer.util.AppConfig; // 导入 AppConfig
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.concurrent.Task;
@@ -18,20 +18,24 @@ import java.util.regex.Pattern;
 
 public class BiliDownloader {
 
-    // 默认下载目录：用户主目录下的 BiliMusicPlayer_Downloads 文件夹
-    private static final String DOWNLOAD_DIR_PATH = System.getProperty("user.home") + File.separator + "BiliMusicPlayer_Downloads";
-    private static final File DOWNLOAD_DIR = new File(DOWNLOAD_DIR_PATH);
+    // 从 AppConfig 获取下载目录
+    private static File getDownloadDir() {
+        File dir = new File(AppConfig.getDownloadPath());
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
 
-    // FFMPEG 路径
-    private static final String FFMPEG_EXECUTABLE_PATH = "C:\\ffmpeg\\ffmpeg-7.1.1-essentials_build\\bin";
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 确保下载目录存在
-    static {
-        if (!DOWNLOAD_DIR.exists()) {
-            DOWNLOAD_DIR.mkdirs();
-        }
-    }
+    // 正则表达式用于解析yt-dlp的进度输出
+    private static final Pattern PROGRESS_PATTERN = Pattern.compile("\\[download\\]\\s*(\\d+\\.\\d+)%");
+    // 正则表达式用于捕获 .info.json 文件的路径
+    private static final Pattern INFO_JSON_PATH_PATTERN = Pattern.compile("Writing video metadata as JSON to: (.*)");
+    // 新增：正则表达式用于捕获 [EmbedThumbnail] 行中的最终文件路径
+    private static final Pattern EMBED_THUMBNAIL_PATH_PATTERN = Pattern.compile("\\[EmbedThumbnail\\] ffmpeg: Adding thumbnail to \"(.*?)\"");
+
 
     /**
      * 用于异步下载的 Task 类
@@ -44,14 +48,6 @@ public class BiliDownloader {
         // 用于存储最终下载的 MP3 文件的路径
         private String finalDownloadedFilePath;
 
-        // 正则表达式用于解析yt-dlp的进度输出
-        private static final Pattern PROGRESS_PATTERN = Pattern.compile("\\[download\\]\\s*(\\d+\\.\\d+)%");
-        // 正则表达式用于捕获 .info.json 文件的路径
-        private static final Pattern INFO_JSON_PATH_PATTERN = Pattern.compile("Writing video metadata as JSON to: (.*)");
-        // 新增：正则表达式用于捕获 [EmbedThumbnail] 行中的最终文件路径
-        private static final Pattern EMBED_THUMBNAIL_PATH_PATTERN = Pattern.compile("\\[EmbedThumbnail\\] ffmpeg: Adding thumbnail to \"(.*?)\"");
-
-
         public DownloadTask(String bilibiliIdentifier) {
             this.bilibiliIdentifier = bilibiliIdentifier;
             updateMessage("准备下载...");
@@ -63,17 +59,26 @@ public class BiliDownloader {
             updateMessage("开始下载: " + bilibiliIdentifier);
 
             List<String> command = new ArrayList<>();
-            command.add("yt-dlp");
+            command.add(AppConfig.getYtDlpPath()); // 使用 AppConfig 获取 yt-dlp 路径
             command.add("--ffmpeg-location"); // 告诉 yt-dlp ffmpeg 的位置
-            command.add(FFMPEG_EXECUTABLE_PATH); // 使用你定义的常量
+            command.add(AppConfig.getFfmpegPath()); // 使用 AppConfig 获取 ffmpeg 路径
             command.add("-x"); // 提取音频
-            command.add("--audio-format"); // 音频格式
-            command.add("mp3"); // 转换为mp3
-            command.add("--embed-thumbnail"); // 嵌入封面
+
+            // 移除音频格式选择，硬编码为 mp3
+            command.add("--audio-format");
+            command.add("mp3"); // 默认音频格式为 mp3
+
+            // 移除音质选择，硬编码为最佳音质 (0)
+            command.add("--audio-quality");
+            command.add("0"); // 默认最佳音质
+
+            // 移除嵌入封面选择，硬编码为始终嵌入
+            command.add("--embed-thumbnail"); // 始终嵌入封面
+
             command.add("--write-info-json"); // 写入元数据json文件
             command.add("--output"); // 输出路径模板
             // %(title)s - 视频标题, %(ext)s - 扩展名, %(id)s - 视频ID
-            command.add(DOWNLOAD_DIR_PATH + File.separator + "%(title)s.%(ext)s");
+            command.add(getDownloadDir().getAbsolutePath() + File.separator + "%(title)s.%(ext)s");
 
             String finalIdentifierForYtDlp = bilibiliIdentifier;
             if (finalIdentifierForYtDlp.startsWith("BV") && finalIdentifierForYtDlp.length() == 12 && !finalIdentifierForYtDlp.startsWith("http")) {
@@ -90,7 +95,7 @@ public class BiliDownloader {
             try {
                 process = processBuilder.start();
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(),"GBK"));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(),"GBK")); // 建议根据系统编码调整，或使用 Charset.defaultCharset()
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (isCancelled()) {
@@ -165,7 +170,18 @@ public class BiliDownloader {
 
             // 直接使用从 yt-dlp 输出中捕获到的最终文件路径
             if (finalAudioFilePath == null || finalAudioFilePath.isEmpty()) {
-                throw new IOException("无法从 yt-dlp 输出中获取最终下载文件的路径（EmbedThumbnail 行未找到或路径为空）。");
+                // 如果 EmbedThumbnail 路径未捕获到，尝试从 info.json 猜测
+                // 这是一种回退方案，但强烈建议依赖 EmbedThumbnail 的输出
+                String guessedFilePath = getDownloadDir().getAbsolutePath() + File.separator +
+                        (rootNode.has("title") ? rootNode.get("title").asText() : "unknown") +
+                        "." + (rootNode.has("ext") ? rootNode.get("ext").asText() : "mp3");
+                File guessedFile = new File(guessedFilePath);
+                if (guessedFile.exists()) {
+                    finalAudioFilePath = guessedFile.getAbsolutePath();
+                    System.out.println("Warning: finalDownloadedFilePath not captured from EmbedThumbnail, guessed: " + finalAudioFilePath);
+                } else {
+                    throw new IOException("无法从 yt-dlp 输出中获取最终下载文件的路径，且无法猜测其位置。");
+                }
             }
 
             String id = rootNode.has("id") ? rootNode.get("id").asText() : "N/A";

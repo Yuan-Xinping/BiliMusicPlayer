@@ -1,9 +1,8 @@
-// src/main/java/com/bilibili/musicplayer/controller/LeftSidebarController.java
 package com.bilibili.musicplayer.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button; // 导入 Button 类
+import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
 
 import java.net.URL;
@@ -13,13 +12,13 @@ public class LeftSidebarController implements Initializable {
 
     private MainController mainController;
 
-    @FXML private VBox rootView; // FXML的根节点，用于getView()
+    @FXML private VBox rootView;
 
     @FXML private Button libraryButton;
     @FXML private Button downloadButton;
     @FXML private Button settingsButton;
 
-    private Button currentActiveButton; // 用于跟踪当前激活的按钮
+    private Button currentActiveButton;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -36,6 +35,8 @@ public class LeftSidebarController implements Initializable {
         setActiveButton(libraryButton);
         if (mainController != null) {
             mainController.showView("library");
+            // 已删除：rootView.setVisible(!AppConfig.isHideSidebar());
+            // 侧边栏的可见性现在将由 FXML 默认或 CSS 控制，不再通过 AppConfig 设置。
         }
     }
 
@@ -62,7 +63,7 @@ public class LeftSidebarController implements Initializable {
 
     @FXML
     private void handleLibraryClick() {
-        setActiveButton(libraryButton); // 设置当前点击的按钮为激活状态
+        setActiveButton(libraryButton);
         if (mainController != null) {
             mainController.showView("library");
         }
@@ -70,7 +71,7 @@ public class LeftSidebarController implements Initializable {
 
     @FXML
     private void handleDownloadClick() {
-        setActiveButton(downloadButton); // 设置当前点击的按钮为激活状态
+        setActiveButton(downloadButton);
         if (mainController != null) {
             mainController.showView("download");
         }
@@ -78,10 +79,10 @@ public class LeftSidebarController implements Initializable {
 
     @FXML
     private void handleSettingsClick() {
-        setActiveButton(settingsButton); // 设置当前点击的按钮为激活状态
+        setActiveButton(settingsButton);
         if (mainController != null) {
-            System.out.println("Settings clicked (not yet implemented).");
-            // mainController.showView("settings"); // 如果有设置视图，可以这样调用
+            System.out.println("Settings clicked.");
+            mainController.showView("settings"); // 现在可以调用了
         }
     }
 

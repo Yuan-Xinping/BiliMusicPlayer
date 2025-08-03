@@ -9,7 +9,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox; // 确保这里是 HBox，与你的 FXML 匹配
+import javafx.scene.layout.HBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -26,16 +26,16 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.concurrent.atomic.AtomicInteger; // 用于在 lambda 表达式中修改计数器
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DownloadController implements Initializable {
 
-    @FXML private HBox rootView; // 确认 FXML 根元素是 HBox
+    @FXML private HBox rootView;
     @FXML private TextField urlField;
     @FXML private Button downloadByUrlButton;
     @FXML private Button downloadByBvButton;
-    @FXML private ProgressBar progressBar; // 用于单个下载
-    @FXML private Label statusLabel; // 用于单个下载
+    @FXML private ProgressBar progressBar;
+    @FXML private Label statusLabel;
 
     // NEW FXML elements for Batch Download
     @FXML private Button btnImportFromFile;
@@ -375,14 +375,10 @@ public class DownloadController implements Initializable {
             }).start();
         } else {
             batchOverallStatusLabel.setText("文件导入操作已取消。");
-            // 如果文件选择被取消，确保控件恢复可用状态
-            // 只有在 file != null 时才调用 setAllDownloadControlsDisabled(true)，
-            // 所以这里直接 setAllDownloadControlsDisabled(false) 是安全的。
             setAllDownloadControlsDisabled(false);
         }
     }
 
-    // NEW: 处理取消批量下载按钮点击事件
     @FXML
     private void handleCancelBatchDownload() {
         if (currentBatchDownloadService != null && currentBatchDownloadService.isRunning()) {

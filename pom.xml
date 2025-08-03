@@ -77,6 +77,105 @@
                 </configuration>
             </plugin>
 
+            <!-- 新增: 复制外部二进制文件的插件配置 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.2.0</version> <!-- 使用一个稳定的版本 -->
+                <executions>
+                    <execution>
+                        <id>copy-external-binaries</id>
+                        <phase>process-resources</phase> <!-- 在处理资源阶段执行 -->
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <!-- 目标目录是 Maven 构建的 target 目录下的 bin 文件夹 -->
+                            <outputDirectory>${project.build.directory}/bin</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <!-- 源目录是你的 external_binaries/win -->
+                                    <directory>external_binaries/win</directory>
+                                    <includes>
+                                        <include>yt-dlp.exe</include>
+                                        <include>ffmpeg.exe</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Shade Plugin for fat JAR  -->
+            <!-- 确保 MainApplication 是你的主类 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>com.bilibili.musicplayer.MainApplication</mainClass>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- 建议为最终的 JAR 指定一个 finalName，方便后续 Launch4j 和 Inno Setup 引用 -->
+                            <finalName>${project.artifactId}-${project.version}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+            如果你还使用 Launch4j Maven Plugin 来生成 .exe，它的配置应该放在这里。
+            例如：
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>1.7.25</version>
+                <executions>
+                    <execution>
+                        <id>l4j-wrap</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <jar>${project.build.directory}/${project.artifactId}-${project.version}.jar</jar>
+                            <outfile>${project.build.directory}/${project.artifactId}.exe</outfile>
+                            <dontWrapJar>true</dontWrapJar>
+                            <errTitle>BiliMusicPlayer</errTitle>
+                            <classPath>
+                                <mainClass>com.bilibili.musicplayer.MainApplication</mainClass>
+                                <addDependencies>false</addDependencies>
+                            </classPath>
+                            <jre>
+                                <path>./jre</path> // 如果你捆绑 JRE
+                                <minVersion>1.8.0</minVersion>
+                            </jre>
+                            <icon>src/main/resources/icons/app_icon.ico</icon> // 可选的应用图标
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            -->
         </plugins>
     </build>
 </project>
