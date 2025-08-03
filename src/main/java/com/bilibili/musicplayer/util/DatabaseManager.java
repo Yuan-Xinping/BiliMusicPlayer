@@ -1,6 +1,8 @@
 // src/main/java/com/bilibili/musicplayer/util/DatabaseManager.java
 package com.bilibili.musicplayer.util;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -8,17 +10,56 @@ import java.sql.Statement;
 
 public class DatabaseManager {
 
-    private static final String DB_URL = "jdbc:sqlite:bili_music_player.db";
+    private static final String DB_FILE_NAME = "bili_music_player.db";
+    private static String DB_URL; // 将 DB_URL 改为非 final 并在静态块中初始化
 
-    // 静态代码块：在类加载时只执行一次，用于加载 JDBC 驱动
     static {
         try {
             Class.forName("org.sqlite.JDBC");
             System.out.println("SQLite JDBC Driver loaded.");
+
+            String appDataDir;
+            String os = System.getProperty("os.name").toLowerCase();
+
+            if (os.contains("win")) {
+
+                appDataDir = System.getenv("APPDATA");
+                if (appDataDir == null) { // Fallback if APPDATA is not set
+                    appDataDir = System.getProperty("user.home") + File.separator + "AppData" + File.separator + "Roaming";
+                }
+            } else if (os.contains("mac")) {
+                // macOS: ~/Library/Application Support
+                appDataDir = System.getProperty("user.home") + File.separator + "Library" + File.separator + "Application Support";
+            } else {
+                // Linux/Unix: ~/.config 或 ~/.local/share
+                appDataDir = System.getProperty("user.home") + File.separator + ".config"; // XDG Base Directory Specification
+            }
+
+            // 构建应用程序特定的数据目录
+            File appSpecificDir = new File(appDataDir, "BiliMusicPlayer");
+            if (!appSpecificDir.exists()) {
+                boolean created = appSpecificDir.mkdirs(); // 创建目录（包括父目录）
+                if (created) {
+                    System.out.println("Created application data directory: " + appSpecificDir.getAbsolutePath());
+                } else {
+                    System.err.println("Warning: Failed to create application data directory: " + appSpecificDir.getAbsolutePath());
+                }
+            }
+
+            // 构建完整的数据库文件路径
+            File dbFile = new File(appSpecificDir, DB_FILE_NAME);
+            DB_URL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+            System.out.println("Database path set to: " + dbFile.getAbsolutePath());
+
         } catch (ClassNotFoundException e) {
             System.err.println("错误: 无法加载 SQLite JDBC 驱动。请确保 'org.xerial:sqlite-jdbc' 依赖已添加。");
             e.printStackTrace();
-            System.exit(1); // 致命错误，退出应用程序
+            // 致命错误，无法继续，直接退出或抛出运行时异常
+            throw new RuntimeException("Failed to load SQLite JDBC driver.", e);
+        } catch (Exception e) { // 捕获其他可能的异常，如目录创建失败
+            System.err.println("错误: 初始化数据库路径失败。");
+            e.printStackTrace();
+            throw new RuntimeException("Failed to initialize database path.", e);
         }
     }
 
@@ -81,7 +122,35 @@ public class DatabaseManager {
             stmt.execute(createSongsTableSQL);
             stmt.execute(createPlaylistsTableSQL);
             stmt.execute(createPlaylistSongsTableSQL);
+
+
+            try {
+                stmt.execute("ALTER TABLE songs ADD COLUMN is_favorite INTEGER DEFAULT 0;");
+                System.out.println("Added 'is_favorite' column to 'songs' table.");
+            } catch (SQLException e) {
+                // 如果列已存在，会抛出异常，我们忽略它
+                if (!e.getMessage().contains("duplicate column name")) {
+                    System.err.println("Error adding 'is_favorite' column: " + e.getMessage());
+                    // 如果是其他错误，可能需要重新抛出或处理
+                }
+            }
+
         }
     }
 
+    // 主方法用于测试数据库路径和连接
+    public static void main(String[] args) {
+        try {
+            System.out.println("Attempting to get database connection...");
+            Connection conn = DatabaseManager.getConnection();
+            if (conn != null) {
+                System.out.println("Successfully connected to the database.");
+                conn.close();
+                System.out.println("Connection closed.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to connect to the database: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
