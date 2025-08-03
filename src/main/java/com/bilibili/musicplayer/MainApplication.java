@@ -2,7 +2,7 @@
 package com.bilibili.musicplayer;
 
 import com.bilibili.musicplayer.util.VlcjManager;
-import com.bilibili.musicplayer.util.AppConfig; // 导入 AppConfig
+import com.bilibili.musicplayer.util.AppConfig;
 
 import javafx.application.Application;
 import javafx.application.Platform;

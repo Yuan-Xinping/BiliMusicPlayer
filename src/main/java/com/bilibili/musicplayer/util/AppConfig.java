@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL; // 导入 URL 类
-
+import java.net.URL;
 import com.bilibili.musicplayer.MainApplication;
 
 public class AppConfig {
@@ -39,14 +38,14 @@ public class AppConfig {
                 System.out.println("AppConfig loaded from: " + CONFIG_FILE.getAbsolutePath());
             } catch (IOException e) {
                 System.err.println("Error loading config from " + CONFIG_FILE.getAbsolutePath() + ": " + e.getMessage());
-                configData = new AppConfigData();
+                configData = new AppConfigData(); // Fallback to default if load fails
                 System.out.println("Falling back to default config.");
-                saveConfig();
+                saveConfig(); // Save newly created default config
             }
         } else {
-            configData = new AppConfigData();
+            configData = new AppConfigData(); // Create default if file not found
             System.out.println("Config file not found, creating default config.");
-            saveConfig();
+            saveConfig(); // Save newly created default config
         }
     }
 
@@ -96,22 +95,39 @@ public class AppConfig {
             URL location = MainApplication.class.getProtectionDomain().getCodeSource().getLocation();
             File codeSourceFile = new File(location.toURI());
 
+            // 调试打印：
+            System.out.println("DEBUG: Code source location URI: " + location.toURI());
+            System.out.println("DEBUG: Code source file: " + codeSourceFile.getAbsolutePath());
+
+            // 如果是从 JAR 包运行 (打包后的应用)
             if (codeSourceFile.isFile() && codeSourceFile.getName().toLowerCase().endsWith(".jar")) {
-                return codeSourceFile.getParentFile().getParentFile(); // 从 lib 向上两级
+                // JAR 包在 BiliMusicPlayer_Release/BiliMusicPlayer-1.0-SNAPSHOT.jar
+                // 它的父目录就是 BiliMusicPlayer_Release，这正是我们需要的根目录
+                File appRoot = codeSourceFile.getParentFile();
+                System.out.println("DEBUG: Detected app root (from JAR): " + appRoot.getAbsolutePath());
+                return appRoot;
             }
 
+            // 如果是从 IDE 运行 (例如 target/classes)
             if (codeSourceFile.isDirectory() && codeSourceFile.getName().equals("classes")) {
-                return codeSourceFile.getParentFile().getParentFile(); // 从 target/classes 向上两级到项目根目录
+                // 从 target/classes 向上两级到项目根目录
+                File appRoot = codeSourceFile.getParentFile().getParentFile();
+                System.out.println("DEBUG: Detected app root (from IDE classes): " + appRoot.getAbsolutePath());
+                return appRoot;
             }
 
-            return codeSourceFile; // 此时 codeSourceFile 就是项目根目录
+            // 其他情况的默认回退，可能直接就是项目根目录
+            System.out.println("DEBUG: Detected app root (fallback to code source): " + codeSourceFile.getAbsolutePath());
+            return codeSourceFile;
 
         } catch (URISyntaxException e) {
             System.err.println("Error resolving application root URI: " + e.getMessage());
         }
-        // 回退：如果以上方法都失败，使用用户当前工作目录（通常是项目根目录）
+        // 最终回退：如果以上方法都失败，使用用户当前工作目录（对于打包的 EXE，通常是 EXE 所在的目录）
         System.err.println("Could not determine application root reliably. Falling back to user.dir.");
-        return new File(System.getProperty("user.dir"));
+        File userDir = new File(System.getProperty("user.dir"));
+        System.out.println("DEBUG: Detected app root (fallback to user.dir): " + userDir.getAbsolutePath());
+        return userDir;
     }
 
     /**
@@ -124,25 +140,28 @@ public class AppConfig {
     public static String getBundledBinaryPath(String binaryName) {
         File appRoot = getApplicationRoot(); // 获取应用程序的根目录
 
+        // 1. 优先检查 appRoot/bin/binaryName (适用于打包后的应用)
         File packagedBinaryPath = new File(appRoot, "bin" + File.separator + binaryName);
         if (packagedBinaryPath.exists() && packagedBinaryPath.isFile()) {
-            System.out.println("Found bundled binary (packaged): " + packagedBinaryPath.getAbsolutePath());
+            System.out.println("Found bundled binary (appRoot/bin): " + packagedBinaryPath.getAbsolutePath());
             return packagedBinaryPath.getAbsolutePath();
         }
 
+        // 2. 检查 appRoot/target/bin/binaryName (适用于 Maven 开发环境，如果 appRoot 是项目根目录)
         File targetBinaryPath = new File(appRoot, "target" + File.separator + "bin" + File.separator + binaryName);
         if (targetBinaryPath.exists() && targetBinaryPath.isFile()) {
-            System.out.println("Found bundled binary (target/bin): " + targetBinaryPath.getAbsolutePath());
+            System.out.println("Found bundled binary (appRoot/target/bin): " + targetBinaryPath.getAbsolutePath());
             return targetBinaryPath.getAbsolutePath();
         }
 
+        // 3. 检查 appRoot/external_binaries/win/binaryName (适用于 IDE 开发环境，如果 appRoot 是项目根目录)
         File sourceBinaryPath = new File(appRoot, "external_binaries" + File.separator + "win" + File.separator + binaryName);
         if (sourceBinaryPath.exists() && sourceBinaryPath.isFile()) {
-            System.out.println("Found bundled binary (external_binaries/win): " + sourceBinaryPath.getAbsolutePath());
+            System.out.println("Found bundled binary (appRoot/external_binaries): " + sourceBinaryPath.getAbsolutePath());
             return sourceBinaryPath.getAbsolutePath();
         }
 
-        System.err.println("Bundled binary NOT found at any expected location for: " + binaryName);
+        System.err.println("Bundled binary NOT found at any expected location for: " + binaryName + ". App Root was: " + appRoot.getAbsolutePath());
         return ""; // 所有尝试都失败，返回空字符串
     }
 }
