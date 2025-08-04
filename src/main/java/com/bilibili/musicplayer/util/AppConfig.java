@@ -38,14 +38,14 @@ public class AppConfig {
                 System.out.println("AppConfig loaded from: " + CONFIG_FILE.getAbsolutePath());
             } catch (IOException e) {
                 System.err.println("Error loading config from " + CONFIG_FILE.getAbsolutePath() + ": " + e.getMessage());
-                configData = new AppConfigData(); // Fallback to default if load fails
+                configData = new AppConfigData();
                 System.out.println("Falling back to default config.");
-                saveConfig(); // Save newly created default config
+                saveConfig();
             }
         } else {
             configData = new AppConfigData(); // Create default if file not found
             System.out.println("Config file not found, creating default config.");
-            saveConfig(); // Save newly created default config
+            saveConfig();
         }
     }
 
@@ -95,14 +95,10 @@ public class AppConfig {
             URL location = MainApplication.class.getProtectionDomain().getCodeSource().getLocation();
             File codeSourceFile = new File(location.toURI());
 
-            // 调试打印：
             System.out.println("DEBUG: Code source location URI: " + location.toURI());
             System.out.println("DEBUG: Code source file: " + codeSourceFile.getAbsolutePath());
 
-            // 如果是从 JAR 包运行 (打包后的应用)
             if (codeSourceFile.isFile() && codeSourceFile.getName().toLowerCase().endsWith(".jar")) {
-                // JAR 包在 BiliMusicPlayer_Release/BiliMusicPlayer-1.0-SNAPSHOT.jar
-                // 它的父目录就是 BiliMusicPlayer_Release，这正是我们需要的根目录
                 File appRoot = codeSourceFile.getParentFile();
                 System.out.println("DEBUG: Detected app root (from JAR): " + appRoot.getAbsolutePath());
                 return appRoot;

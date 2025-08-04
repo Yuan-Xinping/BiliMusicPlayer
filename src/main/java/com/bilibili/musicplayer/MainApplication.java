@@ -1,4 +1,3 @@
-// src/main/java/com/bilibili/musicplayer/MainApplication.java
 package com.bilibili.musicplayer;
 
 import com.bilibili.musicplayer.util.VlcjManager;
@@ -28,15 +27,11 @@ public class MainApplication extends Application {
     public void start(Stage stage) throws IOException {
         this.primaryStage = stage;
 
-        // 1. 显示一个简单的加载界面（Splash Screen）
         showSplashScreen();
-
-        // 2. 在后台线程执行耗时的初始化任务
         Task<Boolean> initializationTask = new Task<Boolean>() {
             @Override
             protected Boolean call() throws Exception {
                 System.out.println("Starting vlcj initialization on background thread...");
-                // 在后台线程调用 VlcjManager 的初始化方法
                 return VlcjManager.initialize();
             }
         };
@@ -119,7 +114,6 @@ public class MainApplication extends Application {
             splashStage.hide();
         }
 
-        // FXML 文件路径调整为 /com/bilibili/musicplayer/mainwindow.fxml
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/bilibili/musicplayer/mainwindow.fxml"));
         Parent root = loader.load();
 
@@ -141,6 +135,9 @@ public class MainApplication extends Application {
     }
 
     public static void main(String[] args) {
+        System.setProperty("jna.encoding", "UTF-8");
+        System.out.println("MainApplication: Set jna.encoding to UTF-8.");
+
         launch(args);
     }
 }

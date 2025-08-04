@@ -11,7 +11,7 @@ import java.sql.Statement;
 public class DatabaseManager {
 
     private static final String DB_FILE_NAME = "bili_music_player.db";
-    private static String DB_URL; // 将 DB_URL 改为非 final 并在静态块中初始化
+    private static String DB_URL;
 
     static {
         try {
@@ -24,18 +24,15 @@ public class DatabaseManager {
             if (os.contains("win")) {
 
                 appDataDir = System.getenv("APPDATA");
-                if (appDataDir == null) { // Fallback if APPDATA is not set
+                if (appDataDir == null) {
                     appDataDir = System.getProperty("user.home") + File.separator + "AppData" + File.separator + "Roaming";
                 }
             } else if (os.contains("mac")) {
-                // macOS: ~/Library/Application Support
                 appDataDir = System.getProperty("user.home") + File.separator + "Library" + File.separator + "Application Support";
             } else {
-                // Linux/Unix: ~/.config 或 ~/.local/share
                 appDataDir = System.getProperty("user.home") + File.separator + ".config"; // XDG Base Directory Specification
             }
 
-            // 构建应用程序特定的数据目录
             File appSpecificDir = new File(appDataDir, "BiliMusicPlayer");
             if (!appSpecificDir.exists()) {
                 boolean created = appSpecificDir.mkdirs(); // 创建目录（包括父目录）
@@ -46,7 +43,6 @@ public class DatabaseManager {
                 }
             }
 
-            // 构建完整的数据库文件路径
             File dbFile = new File(appSpecificDir, DB_FILE_NAME);
             DB_URL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
             System.out.println("Database path set to: " + dbFile.getAbsolutePath());
@@ -54,7 +50,6 @@ public class DatabaseManager {
         } catch (ClassNotFoundException e) {
             System.err.println("错误: 无法加载 SQLite JDBC 驱动。请确保 'org.xerial:sqlite-jdbc' 依赖已添加。");
             e.printStackTrace();
-            // 致命错误，无法继续，直接退出或抛出运行时异常
             throw new RuntimeException("Failed to load SQLite JDBC driver.", e);
         } catch (Exception e) { // 捕获其他可能的异常，如目录创建失败
             System.err.println("错误: 初始化数据库路径失败。");
@@ -99,26 +94,25 @@ public class DatabaseManager {
                 "cover_url TEXT," +
                 "duration_seconds INTEGER," +
                 "download_date TEXT NOT NULL," +
-                "is_favorite INTEGER DEFAULT 0" + // 新增字段，0为否，1为是
+                "is_favorite INTEGER DEFAULT 0" +
                 ");";
 
         // 新增 playlists 表
         String createPlaylistsTableSQL = "CREATE TABLE IF NOT EXISTS playlists (" +
                 "id TEXT PRIMARY KEY," +
-                "name TEXT NOT NULL UNIQUE," + // 播放列表名称唯一
+                "name TEXT NOT NULL UNIQUE," +
                 "description TEXT" +
                 ");";
 
-        // 新增 playlist_songs 关联表（多对多关系）
         String createPlaylistSongsTableSQL = "CREATE TABLE IF NOT EXISTS playlist_songs (" +
                 "playlist_id TEXT NOT NULL," +
                 "song_id TEXT NOT NULL," +
-                "PRIMARY KEY (playlist_id, song_id)," + // 复合主键
-                "FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE," + // 级联删除
-                "FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE" + // 级联删除
+                "PRIMARY KEY (playlist_id, song_id)," +
+                "FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE," +
+                "FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE" +
                 ");";
 
-        try (Statement stmt = conn.createStatement()) { // 使用传入的连接
+        try (Statement stmt = conn.createStatement()) {
             stmt.execute(createSongsTableSQL);
             stmt.execute(createPlaylistsTableSQL);
             stmt.execute(createPlaylistSongsTableSQL);
@@ -128,10 +122,8 @@ public class DatabaseManager {
                 stmt.execute("ALTER TABLE songs ADD COLUMN is_favorite INTEGER DEFAULT 0;");
                 System.out.println("Added 'is_favorite' column to 'songs' table.");
             } catch (SQLException e) {
-                // 如果列已存在，会抛出异常，我们忽略它
                 if (!e.getMessage().contains("duplicate column name")) {
                     System.err.println("Error adding 'is_favorite' column: " + e.getMessage());
-                    // 如果是其他错误，可能需要重新抛出或处理
                 }
             }
 

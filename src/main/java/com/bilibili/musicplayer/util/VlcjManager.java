@@ -1,4 +1,3 @@
-// src/main/java/com/bilibili/musicplayer/util/VlcjManager.java
 package com.bilibili.musicplayer.util;
 
 import uk.co.caprica.vlcj.player.MediaPlayerFactory;
@@ -64,13 +63,12 @@ public class VlcjManager {
                     System.err.println("VlcjManager: Warning: VLC_PLUGIN_PATH could not be inferred from " + vlcLibPath + " because 'plugins' directory does not exist.");
                 }
             } else {
-                System.out.println("VlcjManager: For non-Windows, VLCclea_PLUGIN_PATH usually not explicitly set or handled by VLC itself.");
+                System.out.println("VlcjManager: For non-Windows, VLC_PLUGIN_PATH usually not explicitly set or handled by VLC itself.");
             }
         } else {
             System.err.println("VlcjManager: Critical Error: VLC library path could not be determined.");
             return false;
         }
-
 
         String[] vlcArgs = {
                 "--no-video",
@@ -81,13 +79,23 @@ public class VlcjManager {
                 "--no-stats",
                 "--no-metadata-network-access",
                 "--file-caching=200",
-                //"--no-lua",   //vlc3才需要这个,vlc2不用
-                //"--verbose=3" // 调试时可以打开
+                "--input-file-encoding=UTF-8",
+                // "--no-lua", // vlc3才需要这个,vlc2不用
+                // "--verbose=3" // 调试时可以打开
         };
 
+        // 将参数数组转换为一个空格分隔的字符串
+        StringBuilder vlcArgsString = new StringBuilder();
+        for (String arg : vlcArgs) {
+            vlcArgsString.append(arg).append(" ");
+        }
+        // 设置 VLC_ARGS 系统属性，这必须在 MediaPlayerFactory 实例化之前完成
+        System.setProperty("VLC_ARGS", vlcArgsString.toString().trim());
+        System.out.println("VlcjManager: Set VLC_ARGS to: " + System.getProperty("VLC_ARGS"));
+
         try {
-            // 确保 NativeLibrary 已经设置了搜索路径，然后创建 MediaPlayerFactory
-            mediaPlayerFactory = new MediaPlayerFactory(vlcArgs);
+            // 在 vlcj 2.x 中，MediaPlayerFactory 通常使用无参构造函数
+            mediaPlayerFactory = new MediaPlayerFactory(); // 这里不再传递 vlcArgs
             mediaPlayer = mediaPlayerFactory.newEmbeddedMediaPlayer();
             initialized = true;
             System.out.println("VlcjManager: vlcj MediaPlayerFactory and EmbeddedMediaPlayer initialized successfully.");

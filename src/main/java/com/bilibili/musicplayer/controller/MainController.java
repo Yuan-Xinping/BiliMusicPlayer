@@ -29,7 +29,7 @@ public class MainController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         System.out.println("MainController initialized.");
 
-        boolean vlcInitSuccess = VlcjManager.isInitialized(); // 检查是否已初始化
+        boolean vlcInitSuccess = VlcjManager.isInitialized();
         if (!vlcInitSuccess) {
 
             vlcInitSuccess = VlcjManager.initialize();
@@ -38,7 +38,6 @@ public class MainController implements Initializable {
                     Alert alert = new Alert(Alert.AlertType.ERROR);
                     alert.setTitle("错误");
                     alert.setHeaderText("VLC 媒体播放器初始化失败");
-                    // 修改提示信息，因为已移除 VLC 路径设置
                     alert.setContentText("请确保已安装 VLC 播放器。\n应用将退出。");
                     alert.showAndWait();
                     Platform.exit();
@@ -67,8 +66,8 @@ public class MainController implements Initializable {
             if (stage != null) {
                 stage.setOnHidden(event -> {
                     System.out.println("Application closing, releasing MediaPlayerService and VlcjManager resources...");
-                    mediaPlayerService.release(); // MediaPlayerService 会调用 VlcjManager.release()
-                    VlcjManager.release(); // 显式调用 VlcjManager.release() 确保资源释放
+                    mediaPlayerService.release();
+                    VlcjManager.release();
                 });
             }
         });

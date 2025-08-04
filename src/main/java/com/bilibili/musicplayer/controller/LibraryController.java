@@ -24,8 +24,8 @@ import javafx.scene.layout.GridPane;
 import javafx.geometry.Insets;
 import javafx.application.Platform;
 
-import com.fasterxml.jackson.databind.ObjectMapper; // 导入 Jackson
-import com.fasterxml.jackson.databind.SerializationFeature; // 用于美化输出
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.io.File;
 import java.io.IOException;
@@ -59,7 +59,7 @@ public class LibraryController implements Initializable {
     private SortedList<Song> sortedData;
 
     private MediaPlayerService mediaPlayerService;
-    private final ObjectMapper objectMapper = new ObjectMapper(); // NEW: Jackson ObjectMapper 实例
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 当前选中的视图类型
     private enum CurrentView {
@@ -114,7 +114,7 @@ public class LibraryController implements Initializable {
         btnLocalMusic.setOnAction(event -> showLocalMusic());
         btnFavorites.setOnAction(event -> showFavorites());
         btnCreatePlaylist.setOnAction(event -> createNewPlaylist());
-        btnExport.setOnAction(event -> handleExportCurrentView()); // NEW: 导出按钮事件绑定
+        btnExport.setOnAction(event -> handleExportCurrentView());
 
         playlistListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
@@ -174,7 +174,6 @@ public class LibraryController implements Initializable {
     public void addSong(Song song) {
         System.out.println("LibraryController received new song: " + song.getTitle());
         Platform.runLater(() -> {
-            // 仅在当前视图为本地音乐时直接添加，否则 refreshSongs 会在后续处理
             if (currentView == CurrentView.LOCAL_MUSIC) {
                 masterData.add(song);
             }
@@ -247,7 +246,6 @@ public class LibraryController implements Initializable {
         playlistListView.getSelectionModel().select(playlist);
     }
 
-    // NEW: 处理导出按钮点击事件
     @FXML
     private void handleExportCurrentView() {
         List<Song> songsToExport;

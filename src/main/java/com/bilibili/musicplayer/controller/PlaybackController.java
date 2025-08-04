@@ -53,7 +53,6 @@ public class PlaybackController implements Initializable {
         try {
             playIcon = loadImage("/icons/play.png");
             pauseIcon = loadImage("/icons/pause.png");
-            // normalModeIcon = loadImage("/icons/normal.png"); // 移除 normal 模式图标加载
             repeatAllModeIcon = loadImage("/icons/repeat_all.png");
             repeatOneModeIcon = loadImage("/icons/repeat_one.png");
             shuffleModeIcon = loadImage("/icons/shuffle.png");
@@ -309,10 +308,6 @@ public class PlaybackController implements Initializable {
             MediaPlayerService.PlaybackMode currentMode = mediaPlayerService.playbackModeProperty().get();
             MediaPlayerService.PlaybackMode nextMode;
             switch (currentMode) {
-                // 移除 NORMAL 模式
-                // case NORMAL:
-                //     nextMode = MediaPlayerService.PlaybackMode.REPEAT_ALL;
-                //     break;
                 case REPEAT_ALL:
                     nextMode = MediaPlayerService.PlaybackMode.REPEAT_ONE;
                     break;

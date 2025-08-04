@@ -35,8 +35,6 @@ public class LeftSidebarController implements Initializable {
         setActiveButton(libraryButton);
         if (mainController != null) {
             mainController.showView("library");
-            // 已删除：rootView.setVisible(!AppConfig.isHideSidebar());
-            // 侧边栏的可见性现在将由 FXML 默认或 CSS 控制，不再通过 AppConfig 设置。
         }
     }
 
@@ -82,7 +80,7 @@ public class LeftSidebarController implements Initializable {
         setActiveButton(settingsButton);
         if (mainController != null) {
             System.out.println("Settings clicked.");
-            mainController.showView("settings"); // 现在可以调用了
+            mainController.showView("settings");
         }
     }
 

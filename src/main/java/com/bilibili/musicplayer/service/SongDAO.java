@@ -28,7 +28,7 @@ public class SongDAO {
 
         try (Connection conn = DatabaseManager.getConnection()) {
             // 尝试查询是否存在该ID的歌曲，使用新的公共方法
-            if (getSongById(song.getId()) != null) { // MODIFIED: 使用新的 getSongById 方法
+            if (getSongById(song.getId()) != null) {
                 try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
                     pstmt.setString(1, song.getTitle());
                     pstmt.setString(2, song.getArtist());

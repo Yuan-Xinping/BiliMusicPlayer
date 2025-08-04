@@ -39,11 +39,9 @@ public class MediaPlayerService {
         REPEAT_ONE,
         SHUFFLE
     }
-    // 修改：将默认播放模式硬编码为 REPEAT_ALL
     private final ObjectProperty<PlaybackMode> playbackMode = new SimpleObjectProperty<>(PlaybackMode.REPEAT_ALL);
     private final Random random = new Random();
 
-    // 计时器变量 (保留，用于测量播放启动时间)
     private long playMediaCallTime = 0;
 
     public MediaPlayerService() {

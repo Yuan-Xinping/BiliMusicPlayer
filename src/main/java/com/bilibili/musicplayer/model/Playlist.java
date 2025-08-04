@@ -2,7 +2,7 @@
 package com.bilibili.musicplayer.model;
 
 import java.util.Objects;
-import java.util.UUID; // 用于生成唯一ID
+import java.util.UUID;
 
 public class Playlist {
     private String id;
