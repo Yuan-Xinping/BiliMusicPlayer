@@ -86,7 +86,7 @@
                                         <Font size="12.0" />
                                     </font>
                                 </Label>
-                                <Label onMouseClicked="#handleOpenGitHub" styleClass="link-label" text="https://github.com/Yuan-Xinping/my-private-project" />
+                                <Label onMouseClicked="#handleOpenGitHub" styleClass="link-label" text="https://github.com/Yuan-Xinping/BiliMusicPlayer" />
                             </children>
                         </VBox>
                     </content>
