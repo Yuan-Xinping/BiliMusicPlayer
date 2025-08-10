@@ -30,7 +30,7 @@ BiliMusicPlayer 是一款基于 JavaFX 开发的音乐播放器，专注于从 B
 
 1. **访问发布页面**：请前往 [GitHub Releases 页面](https://github.com/Yuan-Xinping/BiliMusicPlayer/releases/latest) 下载最新版本的 `BiliMusicPlayer_Setup.exe` 安装包。
 2. **直接下载 (v1.0.0)**：
-   - BiliMusicPlayer_v1.0.0_Setup.exe
+   - BiliMusicPlayer_Setup_v1.0.0.exe
 3. **运行安装包**：下载完成后，双击运行 `.exe` 安装包，按照提示完成安装。
 
 **安装包内置组件：**
@@ -118,4 +118,5 @@ BiliMusicPlayer 是一款基于 JavaFX 开发的音乐播放器，专注于从 B
 ## 版本信息
 
 当前版本：1.0.0
+
 
