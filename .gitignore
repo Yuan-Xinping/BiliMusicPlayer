@@ -1,0 +1,23 @@
+# Build directories
+build/
+x64/
+out/
+.vs/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CMakeUserPresets.json
+
+# Visual Studio files
+*.sln
+*.vcxproj*
+*.user
+*.suo
+
+# Other
+*.log
+*.ilk
+*.pdb
+*.recipe
