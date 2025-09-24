@@ -3,6 +3,7 @@ build/
 x64/
 out/
 .vs/
+external_binaries/
 
 # CMake files
 CMakeCache.txt
