@@ -4,12 +4,19 @@ x64/
 out/
 .vs/
 external_binaries/
+target/
+
+# Binary files and external tools
+external_binaries/
+*.exe
+*.dll
 
 # CMake files
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 CMakeUserPresets.json
+install_manifest.txt
 
 # Visual Studio files
 *.sln
@@ -17,8 +24,14 @@ CMakeUserPresets.json
 *.user
 *.suo
 
+# Qt files
+*.pro.user*
+.qmake.stash
+
 # Other
 *.log
 *.ilk
 *.pdb
 *.recipe
+*.tmp
+*.temp
