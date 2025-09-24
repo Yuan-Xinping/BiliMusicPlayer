@@ -7,7 +7,4 @@ add_library(data STATIC
     "SongRepository.h"
 )
 
-target_link_libraries(data PUBLIC
-    common
-    Qt6::Sql
-)
+target_link_libraries(data PUBLIC Qt6::Core Qt6::Sql common)

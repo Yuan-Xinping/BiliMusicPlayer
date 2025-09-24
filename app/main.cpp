@@ -1,18 +1,28 @@
-#include "BiliMusicPlayerApp.h"
 #include <QApplication>
+#include <QDebug>
+#include "BiliMusicPlayerApp.h"
 #include "../ui/windows/MainWindow.h"
 
 int main(int argc, char* argv[])
 {
-    QApplication a(argc, argv);
+    QApplication app(argc, argv);
 
-    BiliMusicPlayerApp app;
-    if (!app.init()) {
+    qDebug() << "��� BiliMusicPlayer...";
+
+    // ����Ӧ�ó��������
+    BiliMusicPlayerApp appManager;
+
+    // ��ʼ��Ӧ�ó���
+    if (!appManager.initialize()) {
+        qCritical() << "Ӧ�ó����ʼ��ʧ��";
         return 1;
     }
 
-    MainWindow w;
-    w.show();
+    // ��������ʾ������
+    MainWindow mainWindow;
+    mainWindow.show();
 
-    return a.exec();
+    qDebug() << "BiliMusicPlayer �����";
+
+    return app.exec();
 }
