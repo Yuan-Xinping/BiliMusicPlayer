@@ -128,6 +128,25 @@ void AppConfig::setFfmpegPath(const QString& path) {
     saveConfig();
 }
 
+bool AppConfig::isYtDlpAvailable() const {
+    if (m_ytDlpPath.isEmpty()) return false;
+    QFileInfo file(m_ytDlpPath);
+    return file.exists() && file.isExecutable();
+}
+
+bool AppConfig::isFfmpegAvailable() const {
+    if (m_ffmpegPath.isEmpty()) return false;
+    QFileInfo file(m_ffmpegPath);
+    return file.exists() && file.isExecutable();
+}
+
+void AppConfig::refreshBinaryPaths() {
+    qDebug() << "重新扫描二进制文件...";
+    m_ytDlpPath = getBundledBinaryPath("yt-dlp.exe");
+    m_ffmpegPath = getBundledBinaryPath("ffmpeg.exe");
+    saveConfig(); // 保存更新的路径
+}
+
 QString AppConfig::getConfigFilePath() const {
     QString configDir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
     return configDir + "/BiliMusicPlayer/config.json";

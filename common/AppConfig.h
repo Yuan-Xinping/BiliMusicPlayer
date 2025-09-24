@@ -17,6 +17,11 @@ public:
     void setYtDlpPath(const QString& path);
     void setFfmpegPath(const QString& path);
 
+    bool isYtDlpAvailable() const;
+    bool isFfmpegAvailable() const;
+
+    void refreshBinaryPaths();
+
     static QString getBundledBinaryPath(const QString& binaryName);
 
 private:

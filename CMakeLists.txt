@@ -42,6 +42,8 @@ add_subdirectory(viewmodel)
 add_subdirectory(ui)
 add_subdirectory(app)
 add_subdirectory(tests)
+add_subdirectory(service)
+add_subdirectory(examples)
 
 if(WIN32)
     # 定义源和目标路径
