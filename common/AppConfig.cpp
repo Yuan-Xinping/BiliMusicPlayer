@@ -26,10 +26,10 @@ void AppConfig::setDefaultValues() {
 
     // 如果找不到内置文件，给出明确的警告
     if (m_ytDlpPath.isEmpty()) {
-        qWarning() << "未找到内置的 yt-dlp.exe，请确保文件位于 external_binaries/win/ 目录";
+        qWarning() << "未找到内置的 yt-dlp.exe，请确保完整运行了 CMake 构建过程";
     }
     if (m_ffmpegPath.isEmpty()) {
-        qWarning() << "未找到内置的 ffmpeg.exe，请确保文件位于 external_binaries/win/ 目录";
+        qWarning() << "未找到内置的 ffmpeg.exe，请确保完整运行了 CMake 构建过程";
     }
 }
 
@@ -80,6 +80,10 @@ bool AppConfig::loadConfig() {
     }
 
     qDebug() << "配置加载成功:" << configPath;
+    qDebug() << "yt-dlp 路径:" << m_ytDlpPath;
+    qDebug() << "ffmpeg 路径:" << m_ffmpegPath;
+    qDebug() << "下载路径:" << m_downloadPath;
+
     return true;
 }
 
@@ -142,9 +146,21 @@ bool AppConfig::isFfmpegAvailable() const {
 
 void AppConfig::refreshBinaryPaths() {
     qDebug() << "重新扫描二进制文件...";
+    QString oldYtDlpPath = m_ytDlpPath;
+    QString oldFfmpegPath = m_ffmpegPath;
+
     m_ytDlpPath = getBundledBinaryPath("yt-dlp.exe");
     m_ffmpegPath = getBundledBinaryPath("ffmpeg.exe");
-    saveConfig(); // 保存更新的路径
+
+    if (oldYtDlpPath != m_ytDlpPath || oldFfmpegPath != m_ffmpegPath) {
+        qDebug() << "二进制文件路径已更新";
+        qDebug() << "yt-dlp:" << oldYtDlpPath << "->" << m_ytDlpPath;
+        qDebug() << "ffmpeg:" << oldFfmpegPath << "->" << m_ffmpegPath;
+        saveConfig(); // 保存更新的路径
+    }
+    else {
+        qDebug() << "二进制文件路径无变化";
+    }
 }
 
 QString AppConfig::getConfigFilePath() const {
@@ -156,24 +172,44 @@ QString AppConfig::getBundledBinaryPath(const QString& binaryName) {
     QString appRoot = getApplicationRoot();
 
     QStringList possiblePaths = {
-        appRoot + "/../../bin/" + binaryName,
-        appRoot + "/../../../bin/" + binaryName,
-        appRoot + "/bin/" + binaryName
+        appRoot + "/../bin/" + binaryName,                    
+
+        appRoot + "/bin/" + binaryName,                       
+        appRoot + "/../../bin/" + binaryName,                
+        appRoot + "/../../../bin/" + binaryName,           
+
+        appRoot + "/../../../../build/bin/" + binaryName,     
+
+        appRoot + "/../../../../external_binaries/win/" + binaryName,
+        appRoot + "/../../../../../external_binaries/win/" + binaryName
     };
 
-    qDebug() << "查找二进制文件:" << binaryName << "在路径:";
+    qDebug() << "当前应用程序路径:" << appRoot;
+    qDebug() << "查找二进制文件:" << binaryName;
 
     for (const QString& path : possiblePaths) {
         QString normalizedPath = QDir::cleanPath(path);
-        qDebug() << "  " << normalizedPath;
+        qDebug() << "  检查:" << normalizedPath;
 
-        if (QFileInfo::exists(normalizedPath)) {
-            qDebug() << "✓ 找到:" << normalizedPath;
-            return QDir::toNativeSeparators(normalizedPath);
+        QFileInfo fileInfo(normalizedPath);
+        if (fileInfo.exists() && fileInfo.isFile()) {
+            // 验证文件大小（确保不是空文件）
+            if (fileInfo.size() > 0) {
+                qDebug() << "✓ 找到:" << normalizedPath << "(" << fileInfo.size() << " bytes)";
+                return QDir::toNativeSeparators(normalizedPath);
+            }
+            else {
+                qWarning() << "  文件存在但为空:" << normalizedPath;
+            }
         }
     }
 
     qWarning() << "✗ 未找到二进制文件:" << binaryName;
+    qWarning() << "请确保：";
+    qWarning() << "1. 运行了完整的 CMake 构建过程";
+    qWarning() << "2. external_binaries/win/ 目录中存在" << binaryName;
+    qWarning() << "3. CMakeLists.txt 中的复制规则正确执行";
+
     return QString();
 }
 

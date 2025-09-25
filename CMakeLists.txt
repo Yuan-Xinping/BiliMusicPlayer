@@ -52,29 +52,38 @@ add_subdirectory(ui)
 add_subdirectory(app)
 
 if(WIN32)
-    # 定义源和目标路径
     set(EXTERNAL_BINARIES_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/external_binaries/win")
     set(EXTERNAL_BINARIES_TARGET "${CMAKE_BINARY_DIR}/bin")
     
-    # 创建目标目录
     file(MAKE_DIRECTORY ${EXTERNAL_BINARIES_TARGET})
     
-    # 复制二进制文件
-    if(EXISTS "${EXTERNAL_BINARIES_SOURCE}/yt-dlp.exe")
-        configure_file(
-            "${EXTERNAL_BINARIES_SOURCE}/yt-dlp.exe"
-            "${EXTERNAL_BINARIES_TARGET}/yt-dlp.exe"
-            COPYONLY
-        )
-        message(STATUS "Copied yt-dlp.exe to build directory")
-    endif()
+    set(BINARY_FILES "yt-dlp.exe" "ffmpeg.exe")
     
-    if(EXISTS "${EXTERNAL_BINARIES_SOURCE}/ffmpeg.exe")
-        configure_file(
-            "${EXTERNAL_BINARIES_SOURCE}/ffmpeg.exe"
-            "${EXTERNAL_BINARIES_TARGET}/ffmpeg.exe"
-            COPYONLY
-        )
-        message(STATUS "Copied ffmpeg.exe to build directory")
-    endif()
+    foreach(BINARY_FILE ${BINARY_FILES})
+        if(EXISTS "${EXTERNAL_BINARIES_SOURCE}/${BINARY_FILE}")
+            configure_file(
+                "${EXTERNAL_BINARIES_SOURCE}/${BINARY_FILE}"
+                "${EXTERNAL_BINARIES_TARGET}/${BINARY_FILE}"
+                COPYONLY
+            )
+            message(STATUS "Copied ${BINARY_FILE} to ${EXTERNAL_BINARIES_TARGET}")
+        else()
+            message(WARNING "Binary file not found: ${EXTERNAL_BINARIES_SOURCE}/${BINARY_FILE}")
+        endif()
+    endforeach()
+    
+    add_custom_target(copy_binaries ALL
+        COMMENT "Ensuring external binaries are up to date"
+    )
+    
+    foreach(BINARY_FILE ${BINARY_FILES})
+        if(EXISTS "${EXTERNAL_BINARIES_SOURCE}/${BINARY_FILE}")
+            add_custom_command(TARGET copy_binaries POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${EXTERNAL_BINARIES_SOURCE}/${BINARY_FILE}"
+                "${EXTERNAL_BINARIES_TARGET}/${BINARY_FILE}"
+                COMMENT "Updating ${BINARY_FILE}"
+            )
+        endif()
+    endforeach()
 endif()

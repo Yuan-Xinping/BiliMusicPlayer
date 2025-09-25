@@ -1,5 +1,10 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource prefix="/">
-    
-</qresource>
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>icons/app_icon.png</file>
+        <file>icons/music_library.png</file>
+        <file>icons/download_manager.png</file>
+        <file>icons/settings.png</file>
+        <file>styles/main.qss</file>
+    </qresource>
 </RCC>
