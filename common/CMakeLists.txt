@@ -8,6 +8,6 @@ add_library(common STATIC
     "entities/Playlist.cpp"
     "entities/Song.h"
     "entities/Song.cpp"
-)
+    "PlaybackState.h")
 
 target_link_libraries(common PUBLIC Qt6::Core)

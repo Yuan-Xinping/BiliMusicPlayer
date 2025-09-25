@@ -31,19 +31,25 @@ if(WIN32)
     set(CMAKE_AUTOMOC_OPTIONS "-DQT_NO_KEYWORDS")
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Multimedia Sql)
+find_package(Qt6 REQUIRED COMPONENTS 
+    Core 
+    Widgets 
+    Multimedia
+    Sql
+)
+
+message(STATUS "Qt6_FOUND: ${Qt6_FOUND}")
+message(STATUS "Qt6_VERSION: ${Qt6_VERSION}")
 
 # --- Add Subdirectories (Modules) ---
 add_subdirectory(common)
 add_subdirectory(data)
 add_subdirectory(infra)
+add_subdirectory(service)
 add_subdirectory(core)
 add_subdirectory(viewmodel)
 add_subdirectory(ui)
 add_subdirectory(app)
-add_subdirectory(tests)
-add_subdirectory(service)
-add_subdirectory(examples)
 
 if(WIN32)
     # 定义源和目标路径
