@@ -1,10 +1,21 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
-    <qresource prefix="/">
-        <file>icons/app_icon.png</file>
-        <file>icons/music_library.png</file>
-        <file>icons/download_manager.png</file>
-        <file>icons/settings.png</file>
-        <file>styles/main.qss</file>
-    </qresource>
+	<qresource prefix="/">
+		<file alias="main.qss">styles/main.qss</file>
+		
+		<file>icons/app_icon.png</file>
+		<file>icons/music_library.png</file>
+		<file>icons/download_manager.png</file>
+		<file>icons/settings.png</file>
+		<file>icons/play.png</file>
+		<file>icons/pause.png</file>
+		<file>icons/next.png</file>
+		<file>icons/previous.png</file>
+		<file>icons/shuffle.png</file>
+		<file>icons/repeat_all.png</file>
+		<file>icons/repeat_one.png</file>
+		<file>icons/volume.png</file>
+		<file>icons/normal.png</file>
+		<file>icons/stop.png</file>
+	</qresource>
 </RCC>

@@ -1,0 +1,500 @@
+// components/PlaybackBar.cpp
+#include "PlaybackBar.h"
+#include "HoverButton.h"
+
+#include <QDebug>
+#include <QGraphicsDropShadowEffect>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QSlider>
+#include <QVBoxLayout>
+
+PlaybackBar::PlaybackBar(QWidget* parent)
+    : QWidget(parent)
+    , m_isPlaying(false)
+    , m_playMode(0)
+    , m_currentPosition(0)
+    , m_totalDuration(0)
+{
+    setupUI();
+    setupStyles();
+}
+
+void PlaybackBar::setupUI()
+{
+    auto* mainLayout = new QHBoxLayout(this);
+    mainLayout->setContentsMargins(20, 0, 20, 0);
+    mainLayout->setSpacing(20);
+    mainLayout->setAlignment(Qt::AlignVCenter);
+
+    // 左侧：歌曲信息区域
+    auto* songInfoSection = new QWidget();
+    songInfoSection->setFixedWidth(280);
+    songInfoSection->setFixedHeight(46);
+
+    auto* songInfoLayout = new QHBoxLayout(songInfoSection);
+    songInfoLayout->setContentsMargins(16, 8, 16, 8);
+    songInfoLayout->setSpacing(0);
+
+    auto* musicIcon = new QLabel("🎵");
+    musicIcon->setStyleSheet("font-size: 20px; color: #FB7299;");
+    musicIcon->setFixedWidth(30);
+    musicIcon->setAlignment(Qt::AlignCenter);
+
+    auto* textContainer = new QWidget();
+    auto* textLayout = new QVBoxLayout(textContainer);
+    textLayout->setContentsMargins(12, 0, 0, 0);
+    textLayout->setSpacing(0);
+
+    m_songTitle = new QLabel("未播放歌曲");
+    m_songTitle->setObjectName("songTitle");
+
+    m_artistName = new QLabel("未知艺术家");
+    m_artistName->setObjectName("artistName");
+
+    textLayout->addWidget(m_songTitle);
+    textLayout->addWidget(m_artistName);
+
+    songInfoLayout->addWidget(musicIcon);
+    songInfoLayout->addWidget(textContainer, 1);
+
+    // 中间：播放控制区域
+    auto* controlSection = new QWidget();
+    controlSection->setMinimumWidth(400);
+
+    auto* controlLayout = new QVBoxLayout(controlSection);
+    controlLayout->setContentsMargins(0, 0, 0, 0);
+    controlLayout->setSpacing(4);
+
+    auto* buttonWidget = new QWidget();
+    buttonWidget->setFixedHeight(52);
+
+    auto* buttonLayout = new QHBoxLayout(buttonWidget);
+    buttonLayout->setContentsMargins(0, 0, 0, 0);
+    buttonLayout->setSpacing(20);
+
+    auto* modeButton = new HoverButton("顺序播放");
+    modeButton->setObjectName("modeButton");
+    modeButton->setFixedSize(90, 32);
+    modeButton->setHoverSize(QSize(96, 36));
+    modeButton->setToolTip("当前：顺序播放\n点击切换播放模式");
+    m_modeButton = modeButton;
+
+    auto* previousButton = new HoverButton("⏮");
+    previousButton->setObjectName("controlButton");
+    previousButton->setFixedSize(40, 40);
+    previousButton->setHoverSize(QSize(44, 44));
+    m_previousBtn = previousButton;
+
+    auto* playPauseButton = new HoverButton("▶");
+    playPauseButton->setObjectName("playPauseButton");
+    playPauseButton->setFixedSize(52, 52);
+    playPauseButton->setHoverSize(QSize(58, 58));
+    m_playPauseBtn = playPauseButton;
+
+    auto* nextButton = new HoverButton("⏭");
+    nextButton->setObjectName("controlButton");
+    nextButton->setFixedSize(40, 40);
+    nextButton->setHoverSize(QSize(44, 44));
+    m_nextBtn = nextButton;
+
+    auto* playPauseShadow = new QGraphicsDropShadowEffect(this);
+    playPauseShadow->setBlurRadius(28);
+    playPauseShadow->setOffset(0, 6);
+    playPauseShadow->setColor(QColor(251, 114, 153, 90));
+    m_playPauseBtn->setGraphicsEffect(playPauseShadow);
+
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(m_modeButton);
+    buttonLayout->addWidget(m_previousBtn);
+    buttonLayout->addWidget(m_playPauseBtn);
+    buttonLayout->addWidget(m_nextBtn);
+    buttonLayout->addStretch();
+
+    auto* progressWidget = new QWidget();
+    progressWidget->setFixedHeight(18);
+
+    auto* progressLayout = new QHBoxLayout(progressWidget);
+    progressLayout->setContentsMargins(0, 4, 0, 0);
+    progressLayout->setSpacing(12);
+
+    m_currentTimeLabel = new QLabel("0:00");
+    m_currentTimeLabel->setObjectName("timeLabel");
+    m_currentTimeLabel->setFixedWidth(52);
+    m_currentTimeLabel->setAlignment(Qt::AlignCenter);
+
+    m_positionSlider = new QSlider(Qt::Horizontal);
+    m_positionSlider->setObjectName("positionSlider");
+    m_positionSlider->setMinimum(0);
+    m_positionSlider->setMaximum(100);
+    m_positionSlider->setFixedHeight(14);
+
+    m_totalTimeLabel = new QLabel("0:00");
+    m_totalTimeLabel->setObjectName("timeLabel");
+    m_totalTimeLabel->setFixedWidth(52);
+    m_totalTimeLabel->setAlignment(Qt::AlignCenter);
+
+    progressLayout->addWidget(m_currentTimeLabel);
+    progressLayout->addWidget(m_positionSlider);
+    progressLayout->addWidget(m_totalTimeLabel);
+
+    controlLayout->addWidget(buttonWidget);
+    controlLayout->addWidget(progressWidget);
+
+    // 右侧：音量和播放列表
+    auto* volumeSection = new QWidget();
+    volumeSection->setFixedWidth(200);
+    volumeSection->setFixedHeight(46);
+
+    auto* volumeLayout = new QHBoxLayout(volumeSection);
+    volumeLayout->setContentsMargins(12, 8, 16, 8);
+    volumeLayout->setSpacing(12);
+
+    auto* volumeGroup = new QWidget();
+    auto* volumeGroupLayout = new QHBoxLayout(volumeGroup);
+    volumeGroupLayout->setContentsMargins(0, 0, 0, 0);
+    volumeGroupLayout->setSpacing(8);
+
+    auto* volumeButton = new HoverButton("🔊");
+    volumeButton->setObjectName("volumeButton");
+    volumeButton->setFixedSize(36, 36);
+    volumeButton->setHoverSize(QSize(40, 40));
+    m_volumeBtn = volumeButton;
+
+    m_volumeSlider = new QSlider(Qt::Horizontal);
+    m_volumeSlider->setObjectName("volumeSlider");
+    m_volumeSlider->setMinimum(0);
+    m_volumeSlider->setMaximum(100);
+    m_volumeSlider->setValue(70);
+    m_volumeSlider->setFixedWidth(90);
+    m_volumeSlider->setFixedHeight(16);
+
+    volumeGroupLayout->addWidget(m_volumeBtn);
+    volumeGroupLayout->addWidget(m_volumeSlider);
+
+    auto* playlistButton = new HoverButton("📃");
+    playlistButton->setObjectName("playlistButton");
+    playlistButton->setToolTip("播放列表");
+    playlistButton->setFixedSize(36, 36);
+    playlistButton->setHoverSize(QSize(40, 40));
+    m_playlistBtn = playlistButton;
+
+    volumeLayout->addWidget(volumeGroup);
+    volumeLayout->addStretch();
+    volumeLayout->addWidget(m_playlistBtn);
+
+    mainLayout->addWidget(songInfoSection);
+    mainLayout->addWidget(controlSection, 1);
+    mainLayout->addWidget(volumeSection);
+
+    setFixedHeight(90);
+
+    connect(m_playPauseBtn, &QPushButton::clicked, this, &PlaybackBar::playPauseClicked);
+    connect(m_previousBtn, &QPushButton::clicked, this, &PlaybackBar::previousClicked);
+    connect(m_nextBtn, &QPushButton::clicked, this, &PlaybackBar::nextClicked);
+    connect(m_positionSlider, &QSlider::valueChanged, this, &PlaybackBar::onPositionSliderChanged);
+    connect(m_volumeSlider, &QSlider::valueChanged, this, &PlaybackBar::onVolumeSliderChanged);
+    connect(m_modeButton, &QPushButton::clicked, this, &PlaybackBar::onModeButtonClicked);
+}
+
+void PlaybackBar::setupStyles()
+{
+    const QString styleSheet = R"(
+        PlaybackBar {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(42, 42, 42, 0.95),
+                stop:1 rgba(35, 35, 35, 0.95));
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #songTitle {
+            color: #FFFFFF;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        #artistName {
+            color: #B8B8B8;
+            font-size: 13px;
+        }
+
+        QPushButton#controlButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(255,255,255,0.12),
+                stop:1 rgba(255,255,255,0.08));
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            color: #DDDDDD;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        QPushButton#controlButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(251,114,153,0.25),
+                stop:1 rgba(251,114,153,0.15));
+            border: 1px solid rgba(251,114,153,0.4);
+            color: #FFFFFF;
+        }
+
+        QPushButton#controlButton:pressed {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(251,114,153,0.35),
+                stop:1 rgba(251,114,153,0.25));
+        }
+
+        QPushButton#playPauseButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #FF8BB5, stop:0.5 #FB7299, stop:1 #E85D85);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 26px;
+            color: #FFFFFF;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        QPushButton#playPauseButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #FFB3D1, stop:0.5 #FF8BB5, stop:1 #FB7299);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        QPushButton#playPauseButton:pressed {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #E85D85, stop:0.5 #D4527A, stop:1 #C44A75);
+        }
+
+        QPushButton#modeButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(255,255,255,0.08),
+                stop:1 rgba(255,255,255,0.04));
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px;
+            color: #CCCCCC;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 8px;
+        }
+
+        QPushButton#modeButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(251,114,153,0.15),
+                stop:1 rgba(251,114,153,0.08));
+            color: #FFFFFF;
+            border: 1px solid rgba(251,114,153,0.3);
+        }
+
+        QPushButton#volumeButton,
+        QPushButton#playlistButton {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(255,255,255,0.06),
+                stop:1 rgba(255,255,255,0.02));
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #BBBBBB;
+            font-size: 16px;
+            border-radius: 18px;
+        }
+
+        QPushButton#volumeButton:hover,
+        QPushButton#playlistButton:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 rgba(251,114,153,0.12),
+                stop:1 rgba(251,114,153,0.06));
+            color: #FFFFFF;
+            border: 1px solid rgba(251,114,153,0.2);
+        }
+
+        QSlider#positionSlider::groove:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #404040, stop:1 #2A2A2A);
+            height: 5px;
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        QSlider#positionSlider::handle:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #FF8BB5, stop:1 #FB7299);
+            width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            margin: -7px 0;
+            border: 2px solid #FFFFFF;
+        }
+
+        QSlider#positionSlider::handle:horizontal:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #FFB3D1, stop:1 #FF8BB5);
+        }
+
+        QSlider#positionSlider::sub-page:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #FB7299, stop:1 #FF8BB5);
+            border-radius: 2px;
+        }
+
+        QSlider#volumeSlider::groove:horizontal {
+            background: rgba(255,255,255,0.1);
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        QSlider#volumeSlider::handle:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #DDDDDD, stop:1 #BBBBBB);
+            width: 14px;
+            height: 14px;
+            border-radius: 7px;
+            margin: -5px 0;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        QSlider#volumeSlider::handle:horizontal:hover {
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #FFFFFF, stop:1 #DDDDDD);
+        }
+
+        QSlider#volumeSlider::sub-page:horizontal {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #AAAAAA, stop:1 #CCCCCC);
+            border-radius: 2px;
+        }
+
+        #timeLabel {
+            color: #B8B8B8;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: "Consolas", "Monaco", "Menlo", monospace;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 2px 6px;
+        }
+    )";
+
+    setStyleSheet(styleSheet);
+}
+
+void PlaybackBar::setSong(const Song& song)
+{
+    m_currentSong = song;
+    m_songTitle->setText(song.getTitle());
+    m_artistName->setText(song.getArtist());
+}
+
+void PlaybackBar::setDuration(int seconds)
+{
+    m_totalDuration = seconds;
+    m_positionSlider->setMaximum(seconds);
+    m_totalTimeLabel->setText(formatTime(seconds));
+}
+
+void PlaybackBar::setPosition(int seconds)
+{
+    m_currentPosition = seconds;
+    m_positionSlider->setValue(seconds);
+    m_currentTimeLabel->setText(formatTime(seconds));
+}
+
+void PlaybackBar::setVolume(int volume)
+{
+    m_volumeSlider->setValue(volume);
+
+    if (volume == 0) {
+        m_volumeBtn->setText("🔇");
+    }
+    else if (volume < 33) {
+        m_volumeBtn->setText("🔈");
+    }
+    else if (volume < 66) {
+        m_volumeBtn->setText("🔉");
+    }
+    else {
+        m_volumeBtn->setText("🔊");
+    }
+}
+
+void PlaybackBar::setPlaybackState(bool isPlaying)
+{
+    m_isPlaying = isPlaying;
+
+    // 切换播放/暂停图标，保持颜色一致
+    if (isPlaying) {
+        m_playPauseBtn->setText("⏸");  // 暂停图标
+        qDebug() << "切换到暂停图标";
+    }
+    else {
+        m_playPauseBtn->setText("▶");  // 播放图标
+        qDebug() << "切换到播放图标";
+    }
+
+    m_playPauseBtn->update();
+}
+
+void PlaybackBar::onPositionSliderChanged(int value)
+{
+    if (value != m_currentPosition) {
+        m_currentPosition = value;
+        m_currentTimeLabel->setText(formatTime(value));
+        emit positionChanged(value);
+    }
+}
+
+void PlaybackBar::onVolumeSliderChanged(int value)
+{
+    setVolume(value);
+    emit volumeChanged(value);
+}
+
+void PlaybackBar::onModeButtonClicked()
+{
+    m_playMode = (m_playMode + 1) % 4;  // 0,1,2,3 循环切换
+    updateModeButtonDisplay();
+    emit playModeChanged(m_playMode);
+}
+
+void PlaybackBar::updateModeButtonDisplay()
+{
+    QString modeText;
+    QString tooltip;
+    QString nextMode;
+
+    switch (m_playMode) {
+    case 0:  // 顺序播放
+        modeText = "顺序播放";
+        nextMode = "随机播放";
+        break;
+    case 1:  // 随机播放
+        modeText = "随机播放";
+        nextMode = "单曲循环";
+        break;
+    case 2:  // 单曲循环
+        modeText = "单曲循环";
+        nextMode = "列表循环";
+        break;
+    case 3:  // 列表循环
+        modeText = "列表循环";
+        nextMode = "顺序播放";
+        break;
+    }
+
+    tooltip = QString("当前：%1\n点击切换到：%2").arg(modeText, nextMode);
+
+    m_modeButton->setText(modeText);
+    m_modeButton->setToolTip(tooltip);
+
+    qDebug() << "播放模式切换为：" << modeText;
+}
+
+void PlaybackBar::updateTimeLabels()
+{
+    m_currentTimeLabel->setText(formatTime(m_currentPosition));
+    m_totalTimeLabel->setText(formatTime(m_totalDuration));
+}
+
+QString PlaybackBar::formatTime(int seconds) const
+{
+    int mins = seconds / 60;
+    int secs = seconds % 60;
+    return QString("%1:%2").arg(mins).arg(secs, 2, 10, QChar('0'));
+}

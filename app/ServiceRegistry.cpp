@@ -9,5 +9,4 @@ ServiceRegistry& ServiceRegistry::instance() {
 }
 
 void ServiceRegistry::registerServices() {
-    // TODO: �ں����׶�ʵ�ַ���ע��
 }

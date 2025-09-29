@@ -8,6 +8,5 @@ public:
 
     static ServiceRegistry& instance();
 
-    // ����ע�᷽�����ں���ʵ��
     void registerServices();
 };

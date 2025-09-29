@@ -1,28 +1,33 @@
 #include <QApplication>
 #include <QDebug>
+#include <QFile>
 #include "BiliMusicPlayerApp.h"
 #include "../ui/windows/MainWindow.h"
 
 int main(int argc, char* argv[])
 {
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
     QApplication app(argc, argv);
 
-    qDebug() << "��� BiliMusicPlayer...";
-
-    // ����Ӧ�ó��������
     BiliMusicPlayerApp appManager;
 
-    // ��ʼ��Ӧ�ó���
+    qDebug() << "====== 资源存在性检查 ======";
+    if (QFile::exists(":/main.qss")) {
+        qDebug() << "诊断成功: 资源 ':/main.qss' 确实存在于可执行文件中！";
+    }
+    else {
+        qDebug() << "诊断失败: 资源 ':/main.qss' 未被编译进可执行文件！问题在CMake配置。";
+    }
+    qDebug() << "===========================";
+
     if (!appManager.initialize()) {
-        qCritical() << "Ӧ�ó����ʼ��ʧ��";
+        qCritical() << "应用程序初始化失败，程序即将退出。";
         return 1;
     }
 
-    // ��������ʾ������
     MainWindow mainWindow;
     mainWindow.show();
-
-    qDebug() << "BiliMusicPlayer �����";
 
     return app.exec();
 }

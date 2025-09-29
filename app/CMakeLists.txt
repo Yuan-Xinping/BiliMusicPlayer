@@ -6,6 +6,10 @@ add_executable(BiliMusicPlayer
     "ServiceRegistry.h"
 )
 
+if(MSVC)
+    target_compile_options(BiliMusicPlayer PRIVATE /utf-8)
+endif()
+
 set_target_properties(BiliMusicPlayer PROPERTIES
     AUTOMOC ON
 )

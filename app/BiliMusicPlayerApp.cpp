@@ -8,7 +8,7 @@
 BiliMusicPlayerApp::BiliMusicPlayerApp(QObject* parent)
     : QObject(parent) {
 
-    // ����Ӧ�ó�����Ϣ
+    // 设置应用程序信息
     QCoreApplication::setApplicationName("BiliMusicPlayer");
     QCoreApplication::setApplicationVersion("1.0.0");
     QCoreApplication::setOrganizationName("BiliMusicPlayer");
@@ -17,60 +17,60 @@ BiliMusicPlayerApp::BiliMusicPlayerApp(QObject* parent)
 }
 
 bool BiliMusicPlayerApp::initialize() {
-    qDebug() << "���ڳ�ʼ�� BiliMusicPlayer...";
+    qDebug() << "正在初始化 BiliMusicPlayer...";
 
     if (!initializeDatabase()) {
-        qCritical() << "���ݿ��ʼ��ʧ��";
+        qCritical() << "数据库初始化失败";
         return false;
     }
 
     if (!initializeServices()) {
-        qCritical() << "�����ʼ��ʧ��";
+        qCritical() << "服务初始化失败";
         return false;
     }
 
-    qDebug() << "BiliMusicPlayer ��ʼ���ɹ�";
+    qDebug() << "BiliMusicPlayer 初始化成功";
     return true;
 }
 
 bool BiliMusicPlayerApp::initializeDatabase() {
-    qDebug() << "��ʼ�����ݿ�...";
+    qDebug() << "初始化数据库...";
 
     DatabaseManager& dbManager = DatabaseManager::instance();
     if (!dbManager.initialize()) {
-        qCritical() << "���ݿ��ʼ��ʧ��";
+        qCritical() << "数据库初始化失败";
         return false;
     }
 
-    qDebug() << "���ݿ��ʼ���ɹ�";
+    qDebug() << "数据库初始化成功";
     return true;
 }
 
 bool BiliMusicPlayerApp::initializeServices() {
-    qDebug() << "��ʼ������...";
+    qDebug() << "初始化服务...";
 
-    // ��������
+    // 加载配置
     AppConfig& config = AppConfig::instance();
     if (!config.loadConfig()) {
-        qWarning() << "���ü���ʧ�ܣ���ʹ��Ĭ��ֵ";
+        qWarning() << "配置加载失败，将使用默认值";
     }
 
-    // ȷ������Ŀ¼����
+    // 确保下载目录存在
     QDir downloadDir(config.getDownloadPath());
     if (!downloadDir.exists()) {
         if (downloadDir.mkpath(".")) {
-            qDebug() << "��������Ŀ¼:" << downloadDir.absolutePath();
+            qDebug() << "创建下载目录:" << downloadDir.absolutePath();
         }
         else {
-            qWarning() << "�޷���������Ŀ¼:" << downloadDir.absolutePath();
+            qWarning() << "无法创建下载目录:" << downloadDir.absolutePath();
         }
     }
 
-    qDebug() << "�����ʼ���ɹ�";
+    qDebug() << "服务初始化成功";
     return true;
 }
 
 void BiliMusicPlayerApp::setupLogging() {
-    // ������־��ʽ
+    // 设置日志格式
     qSetMessagePattern("[%{time yyyy-MM-dd hh:mm:ss}] %{type}: %{message}");
 }

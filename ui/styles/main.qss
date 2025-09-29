@@ -1,0 +1,371 @@
+/* BiliMusicPlayer 主样式表*/
+
+/* 全局样式 */
+* {
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+QMainWindow {
+    background-color: #1A1A1A;
+    color: #FFFFFF;
+    border: 1px solid #444444;
+    border-radius: 16px;
+}
+
+/* 窗口控制按钮 */
+QPushButton#windowControlButton {
+    background-color: transparent;
+    border: none;
+    color: #AAAAAA;
+    font-size: 14px;
+    border-radius: 8px;
+    margin: 0px 2px;
+    min-width: 35px;
+    min-height: 35px;
+    max-width: 35px;
+    max-height: 35px;
+}
+
+QPushButton#windowControlButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+}
+
+QPushButton#windowControlButton:pressed {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 导航按钮 */
+QPushButton#navigationButton {
+    background-color: transparent;
+    border: none;
+    color: #AAAAAA;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 6px 16px;
+    margin: 0px 1px;
+    border-radius: 12px;
+    min-width: 100px;
+}
+
+QPushButton#navigationButton:hover {
+    background-color: rgba(251, 114, 153, 0.1);
+    color: #FFFFFF;
+}
+
+QPushButton#navigationButton:checked {
+    background-color: #FB7299;
+    color: #FFFFFF;
+}
+
+QPushButton#navigationButton:pressed {
+    background-color: #E85D85;
+}
+
+/* 圆形播放控制按钮 */
+QPushButton#controlButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255,255,255,0.12),
+        stop:1 rgba(255,255,255,0.08));
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    color: #DDDDDD;
+    font-size: 16px;
+    font-weight: bold;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+}
+
+QPushButton#controlButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.25),
+        stop:1 rgba(251,114,153,0.15));
+    border: 1px solid rgba(251,114,153,0.4);
+    color: #FFFFFF;
+}
+
+QPushButton#controlButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.35),
+        stop:1 rgba(251,114,153,0.25));
+}
+
+/* 主播放按钮 */
+QPushButton#playPauseButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF8BB5, stop:0.5 #FB7299, stop:1 #E85D85);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 26px;
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: bold;
+    min-width: 52px;
+    min-height: 52px;
+    max-width: 52px;
+    max-height: 52px;
+}
+
+QPushButton#playPauseButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFB3D1, stop:0.5 #FF8BB5, stop:1 #FB7299);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+QPushButton#playPauseButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #E85D85, stop:0.5 #D4527A, stop:1 #C44A75);
+}
+
+/* 统一的模式切换按钮 */
+QPushButton#modeButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255,255,255,0.08),
+        stop:1 rgba(255,255,255,0.04));
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    color: #CCCCCC;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    min-width: 80px;
+    min-height: 32px;
+    max-height: 32px;
+}
+
+QPushButton#modeButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.15),
+        stop:1 rgba(251,114,153,0.08));
+    color: #FFFFFF;
+    border: 1px solid rgba(251,114,153,0.3);
+}
+
+QPushButton#modeButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.25),
+        stop:1 rgba(251,114,153,0.15));
+}
+
+/* 音量和播放列表按钮 */
+QPushButton#volumeButton,
+QPushButton#playlistButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255,255,255,0.06),
+        stop:1 rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #BBBBBB;
+    font-size: 16px;
+    border-radius: 18px;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+}
+
+QPushButton#volumeButton:hover,
+QPushButton#playlistButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.12),
+        stop:1 rgba(251,114,153,0.06));
+    color: #FFFFFF;
+    border: 1px solid rgba(251,114,153,0.2);
+}
+
+/* 增强进度条样式 */
+QSlider#positionSlider {
+    max-height: 20px;
+}
+
+QSlider#positionSlider::groove:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #404040, stop:1 #2A2A2A);
+    height: 5px;
+    border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+QSlider#positionSlider::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF8BB5, stop:1 #FB7299);
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    margin: -7px 0;
+    border: 2px solid #FFFFFF;
+}
+
+QSlider#positionSlider::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFB3D1, stop:1 #FF8BB5);
+}
+
+QSlider#positionSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FB7299, stop:1 #FF8BB5);
+    border-radius: 2px;
+}
+
+/* 音量滑块样式 */
+QSlider#volumeSlider {
+    max-width: 90px;
+    max-height: 16px;
+}
+
+QSlider#volumeSlider::groove:horizontal {
+    background: rgba(255,255,255,0.1);
+    height: 4px;
+    border-radius: 2px;
+}
+
+QSlider#volumeSlider::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #DDDDDD, stop:1 #BBBBBB);
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    margin: -5px 0;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+QSlider#volumeSlider::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFFFF, stop:1 #DDDDDD);
+}
+
+QSlider#volumeSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #AAAAAA, stop:1 #CCCCCC);
+    border-radius: 2px;
+}
+
+/* 标签样式 */
+#songTitle {
+    color: #FFFFFF;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0px;
+    padding: 0px;
+}
+
+#artistName {
+    color: #B8B8B8;
+    font-size: 13px;
+    font-weight: 400;
+    margin: 0px;
+    padding: 0px;
+}
+
+#timeLabel {
+    color: #B8B8B8;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: "Consolas", "Monaco", "Menlo", monospace;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 2px 6px;
+}
+
+/* 标题栏样式 */
+#titleBarWidget {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #2A2A2A, stop:1 #252525);
+    border-bottom: 2px solid #FB7299;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    min-height: 55px;
+    max-height: 55px;
+}
+
+/* 播放栏样式 */
+#playbackBarWidget {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(42, 42, 42, 0.95),
+        stop:1 rgba(35, 35, 35, 0.95));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    min-height: 90px;
+    max-height: 90px;
+}
+
+/* PlaybackBar组件样式 */
+PlaybackBar {
+    background: transparent;
+    max-height: 90px;
+    min-height: 90px;
+}
+
+/* 内容区域样式 */
+QStackedWidget {
+    background-color: #1A1A1A;
+    border: none;
+    margin: 0px 1px;
+    border-radius: 0px;
+}
+
+/* 中央区域样式 */
+QWidget#centralwidget {
+    background-color: #1A1A1A;
+    border: none;
+    margin: 0px;
+    padding: 0px;
+    border-radius: 16px;
+}
+
+/* 内容页面占位符样式 */
+QLabel[objectName*="Placeholder"] {
+    color: #666666;
+    font-size: 18px;
+    background-color: transparent;
+}
+
+/* 滚动条样式 */
+QScrollBar:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #2A2A2A, stop:1 #252525);
+    width: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #555555, stop:1 #444444);
+    border-radius: 6px;
+    min-height: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+QScrollBar::handle:vertical:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FB7299, stop:1 #E85D85);
+}
+
+/* 列表视图样式 */
+QListView {
+    background-color: #1A1A1A;
+    color: #FFFFFF;
+    border: none;
+    selection-background-color: rgba(251, 114, 153, 0.3);
+}
+
+QListView::item {
+    padding: 8px;
+    border-bottom: 1px solid #333333;
+    border-radius: 8px;
+    margin: 2px;
+}
+
+QListView::item:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255, 255, 255, 0.08),
+        stop:1 rgba(255, 255, 255, 0.04));
+}
+
+QListView::item:selected {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251, 114, 153, 0.25),
+        stop:1 rgba(251, 114, 153, 0.15));
+}
