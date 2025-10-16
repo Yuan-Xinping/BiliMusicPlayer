@@ -16,6 +16,8 @@ set_target_properties(BiliMusicPlayer PROPERTIES
 
 target_link_libraries(BiliMusicPlayer PRIVATE
     ui
+    service
+    viewmodel
     Qt6::Widgets
     Qt6::Core
 )
