@@ -1,3 +1,4 @@
+// service/DownloadService.cpp
 #include "DownloadService.h"
 #include "../common/AppConfig.h"
 #include <QDir>
@@ -202,9 +203,12 @@ void DownloadService::onDownloadFinished(const YtDlpClient::DownloadResult& resu
 
     Song song = parseResult.song;
 
-    // 生成最终文件名
+    // 🔧 生成最终文件名（使用 BV 号）
     QString finalFilename = generateFinalFilename(song, m_currentTask.options);
     QString finalFilePath = QDir(m_downloadDir).filePath(finalFilename);
+
+    qDebug() << "📁 最终文件名:" << finalFilename;
+    qDebug() << "📁 最终文件路径:" << finalFilePath;
 
     // 移动并重命名文件
     if (!moveAndRenameFile(result.tempAudioFilePath, finalFilePath)) {
@@ -234,17 +238,14 @@ void DownloadService::onDownloadError(const QString& error) {
 }
 
 QString DownloadService::generateFinalFilename(const Song& song, const DownloadOptions& options) {
-    QString title = MetadataParser::sanitizeFilename(song.getTitle());
-    QString artist = MetadataParser::sanitizeFilename(song.getArtist());
-    QString extension = options.getFileExtension();
+    QString bvId = song.getId();  // BV 号（例如：BV1xQ4y1n7iy）
+    QString extension = options.getFileExtension();  // 文件扩展名（例如：mp3）
 
-    QString filename;
-    if (!artist.isEmpty() && artist != "未知艺术家") {
-        filename = QString("%1 - %2.%3").arg(artist, title, extension);
-    }
-    else {
-        filename = QString("%1.%2").arg(title, extension);
-    }
+    bvId = MetadataParser::sanitizeFilename(bvId);
+
+    QString filename = QString("%1.%2").arg(bvId, extension);
+
+    qDebug() << "📛 生成文件名:" << filename;
 
     return filename;
 }
@@ -257,6 +258,7 @@ bool DownloadService::moveAndRenameFile(const QString& tempFilePath, const QStri
 
     // 如果目标文件已存在，删除它
     if (QFile::exists(finalFilePath)) {
+        qWarning() << "⚠️ 目标文件已存在，删除:" << finalFilePath;
         if (!QFile::remove(finalFilePath)) {
             qWarning() << "DownloadService: 无法删除已存在的目标文件:" << finalFilePath;
             return false;
@@ -269,7 +271,7 @@ bool DownloadService::moveAndRenameFile(const QString& tempFilePath, const QStri
         return false;
     }
 
-    qDebug() << "DownloadService: 文件重命名成功:" << QFileInfo(finalFilePath).fileName();
+    qDebug() << "✅ 文件重命名成功:" << QFileInfo(finalFilePath).fileName();
     return true;
 }
 
@@ -277,7 +279,7 @@ void DownloadService::cleanupTempFiles(const YtDlpClient::DownloadResult& result
     // 删除临时 info.json 文件
     if (!result.tempInfoJsonPath.isEmpty() && QFile::exists(result.tempInfoJsonPath)) {
         if (QFile::remove(result.tempInfoJsonPath)) {
-            qDebug() << "DownloadService: 清理临时文件:" << result.tempInfoJsonPath;
+            qDebug() << "🗑️ 清理临时文件:" << result.tempInfoJsonPath;
         }
     }
 }
@@ -289,6 +291,7 @@ void DownloadService::completeCurrentTask(const Song& song) {
     m_isDownloading = false;
 
     qDebug() << "DownloadService: 任务完成:" << song.getTitle();
+    qDebug() << "📁 文件保存在:" << song.getLocalFilePath();
     emit taskCompleted(m_currentTask, song);
 
     // 处理下一个任务
