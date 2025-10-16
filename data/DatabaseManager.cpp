@@ -15,6 +15,10 @@ DatabaseManager& DatabaseManager::instance() {
 
 DatabaseManager::DatabaseManager(QObject* parent) : QObject(parent) {
     m_databasePath = getDatabasePath();
+
+    QString dbPath = m_databasePath;
+
+    qDebug() << "📊 数据库路径：" << dbPath;
 }
 
 bool DatabaseManager::initialize() {

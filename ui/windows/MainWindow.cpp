@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "../pages/DownloadManagerPage.h"
 #include "../components/PlaybackBar.h"
 #include "../../common/entities/Song.h"
 #include <QApplication>
@@ -40,6 +41,7 @@ MainWindow::MainWindow(QWidget* parent)
     setupPlaybackBar();
     setupStyles();
     addShadowEffect();
+    setupContentPages();
 
     // 默认显示音乐库页面
     switchToPage(0);
@@ -675,4 +677,25 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event)
         }
     }
     return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::setupContentPages()
+{
+    qDebug() << "开始替换下载管理页面...";
+
+    m_downloadManagerPage = new DownloadManagerPage(this);
+
+    QWidget* oldDownloadPage = ui->contentStackedWidget->widget(1);
+    ui->contentStackedWidget->removeWidget(oldDownloadPage);
+
+    if (oldDownloadPage) {
+        oldDownloadPage->deleteLater();
+        qDebug() << "已移除下载管理占位符页面";
+    }
+
+    ui->contentStackedWidget->insertWidget(1, m_downloadManagerPage);
+
+    qDebug() << "下载管理页面已集成完成";
+    qDebug() << "内容页面总数:" << ui->contentStackedWidget->count();
+
 }

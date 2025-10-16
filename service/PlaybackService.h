@@ -6,7 +6,6 @@
 #include "../common/PlaybackMode.h"
 #include "../common/PlaybackState.h"
 
-// 前向声明 Phase 4.2 的新类型
 struct PlaybackRecord;
 
 class PlaybackService : public QObject {
@@ -45,7 +44,6 @@ public:
     QList<Song> getCurrentPlaylist() const;
     int getCurrentSongIndex() const;
 
-    // 🆕 Phase 4.2: 播放队列管理
     void addToQueue(const Song& song);
     void addNextToQueue(const Song& song);
     QList<Song> getPlaybackQueue() const;
@@ -53,7 +51,6 @@ public:
     void removeFromQueue(int index);
     void moveInQueue(int from, int to);
 
-    // 🆕 Phase 4.2: 播放历史管理
     QList<PlaybackRecord> getPlaybackHistory(int count = 50) const;
     Song getMostPlayedSong() const;
     QList<Song> getFrequentlyPlayedSongs(int count = 10) const;
@@ -62,12 +59,10 @@ public:
     qint64 getTotalPlayDuration(const Song& song) const;
     void clearPlaybackHistory();
 
-    // 🆕 Phase 4.2: 智能播放功能
     QList<Song> generateSmartPlaylist(int maxSongs = 20) const;
     void createSmartPlaylist(int maxSongs = 20);  // 生成并应用智能播放列表
     void resetShuffleHistory();
 
-    // 🆕 Phase 4.2: 高级播放控制
     void playSmartNext();      // 使用智能逻辑播放下一首
     void playSmartPrevious();  // 使用智能逻辑播放上一首
 

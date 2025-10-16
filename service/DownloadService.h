@@ -65,6 +65,7 @@ signals:
 
     void allTasksCompleted();
     void downloadServiceError(const QString& error);
+    void taskSkipped(const QString& identifier, const Song& existingSong);
 
 private slots:
     void onDownloadFinished(const YtDlpClient::DownloadResult& result);

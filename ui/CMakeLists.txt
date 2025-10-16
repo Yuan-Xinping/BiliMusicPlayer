@@ -10,7 +10,10 @@ target_sources(ui PRIVATE
     components/PlaybackBar.cpp
     components/HoverButton.cpp
     resources.qrc
-)
+    pages/DownloadManagerPage.h 
+    pages/DownloadManagerPage.cpp 
+    components/DownloadTaskItem.h 
+    components/DownloadTaskItem.cpp)
 
 target_link_libraries(ui PUBLIC
     viewmodel

@@ -56,6 +56,7 @@ void DownloadService::addDownloadTask(const QString& identifier, const DownloadO
     Song existingSong = m_songRepository->findById(identifier);
     if (!existingSong.getId().isEmpty()) {
         qDebug() << "DownloadService: 歌曲已存在，跳过:" << identifier;
+        emit taskSkipped(identifier, existingSong);
         return;
     }
 

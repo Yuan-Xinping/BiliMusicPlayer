@@ -1,7 +1,7 @@
+// infra/ProcessRunner.cpp
 #include "ProcessRunner.h"
 #include <QDebug>
 #include <QRegularExpression>
-// 移除 #include <QStringConverter>
 
 ProcessRunner::ProcessRunner(QObject* parent)
     : QObject(parent)
@@ -89,23 +89,29 @@ bool ProcessRunner::waitForFinished(int msecs) {
 void ProcessRunner::onReadyReadStandardOutput() {
     QByteArray data = m_process->readAllStandardOutput();
 
-    // Qt6 简化的编码处理方式
     QString text = QString::fromUtf8(data);
 
-    // 如果 UTF-8 解码失败（包含替换字符），尝试本地编码
     if (text.contains(QChar::ReplacementCharacter)) {
         text = QString::fromLocal8Bit(data);
     }
 
     m_outputBuffer += text;
 
-    // 按行处理输出
-    QStringList lines = m_outputBuffer.split('\n');
-    m_outputBuffer = lines.takeLast(); // 保留最后一行（可能不完整）
+    QStringList lines = m_outputBuffer.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+
+    if (m_outputBuffer.endsWith('\n') || m_outputBuffer.endsWith('\r')) {
+        m_outputBuffer.clear();
+    }
+    else {
+        if (!lines.isEmpty()) {
+            m_outputBuffer = lines.takeLast();
+        }
+    }
 
     for (const QString& line : lines) {
-        if (!line.trimmed().isEmpty()) {
-            processOutputLine(line.trimmed());
+        QString trimmed = line.trimmed();
+        if (!trimmed.isEmpty()) {
+            processOutputLine(trimmed);
         }
     }
 }
@@ -113,7 +119,6 @@ void ProcessRunner::onReadyReadStandardOutput() {
 void ProcessRunner::onReadyReadStandardError() {
     QByteArray data = m_process->readAllStandardError();
 
-    // 同样的编码处理方式
     QString text = QString::fromUtf8(data);
 
     if (text.contains(QChar::ReplacementCharacter)) {
@@ -122,13 +127,22 @@ void ProcessRunner::onReadyReadStandardError() {
 
     m_errorBuffer += text;
 
-    QStringList lines = m_errorBuffer.split('\n');
-    m_errorBuffer = lines.takeLast();
+    QStringList lines = m_errorBuffer.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+
+    if (m_errorBuffer.endsWith('\n') || m_errorBuffer.endsWith('\r')) {
+        m_errorBuffer.clear();
+    }
+    else {
+        if (!lines.isEmpty()) {
+            m_errorBuffer = lines.takeLast();
+        }
+    }
 
     for (const QString& line : lines) {
-        if (!line.trimmed().isEmpty()) {
-            qDebug() << "ProcessRunner 错误输出:" << line.trimmed();
-            processOutputLine(line.trimmed());
+        QString trimmed = line.trimmed();
+        if (!trimmed.isEmpty()) {
+            qDebug() << "ProcessRunner 错误输出:" << trimmed;
+            processOutputLine(trimmed);
         }
     }
 }
@@ -156,14 +170,14 @@ void ProcessRunner::onProcessError(QProcess::ProcessError error) {
 void ProcessRunner::processOutputLine(const QString& line) {
     qDebug() << "ProcessRunner 输出:" << line;
 
-    // 解析 yt-dlp 进度（复制Java的正则表达式）
-    static QRegularExpression progressRegex(R"(\[download\]\s*(\d+\.?\d*)%)");
+    static QRegularExpression progressRegex(R"(\[download\]\s+(\d+(?:\.\d+)?)%\s+of)");
     QRegularExpressionMatch match = progressRegex.match(line);
 
     if (match.hasMatch()) {
         bool ok;
         double progress = match.captured(1).toDouble(&ok);
         if (ok && m_progressCallback) {
+            qDebug() << "📊 识别到进度:" << progress << "%"; 
             m_progressCallback(progress / 100.0, QString("下载中: %1%").arg(progress, 0, 'f', 1));
         }
     }

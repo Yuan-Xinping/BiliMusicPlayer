@@ -327,7 +327,6 @@ int PlaybackService::getCurrentSongIndex() const {
     return d->playlistManager->getCurrentIndex();
 }
 
-// Phase 4.2: 播放队列管理
 void PlaybackService::addToQueue(const Song& song) {
     d->playbackQueue->enqueue(song);
 }
@@ -352,7 +351,6 @@ void PlaybackService::moveInQueue(int from, int to) {
     d->playbackQueue->moveSong(from, to);
 }
 
-// Phase 4.2: 播放历史管理
 QList<PlaybackRecord> PlaybackService::getPlaybackHistory(int count) const {
     return d->playbackHistory->getRecentRecords(count);
 }
@@ -382,7 +380,6 @@ void PlaybackService::clearPlaybackHistory() {
     emit playbackHistoryChanged();
 }
 
-// Phase 4.2: 智能播放功能
 QList<Song> PlaybackService::generateSmartPlaylist(int maxSongs) const {
     return d->playlistManager->generateSmartPlaylist(maxSongs);
 }
