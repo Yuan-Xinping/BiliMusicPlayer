@@ -36,6 +36,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Widgets 
     Multimedia
     Sql
+    Network
 )
 
 message(STATUS "Qt6_FOUND: ${Qt6_FOUND}")

@@ -9,6 +9,9 @@
 #include <QVBoxLayout>
 #include <QMessageBox>
 #include <QDebug>
+#include <QDir>
+#include <QStandardPaths>
+#include <QCoreApplication>
 
 SettingsPage::SettingsPage(QWidget* parent)
     : QWidget(parent)
@@ -106,7 +109,7 @@ QHBoxLayout* SettingsPage::createButtonLayout()
 
 void SettingsPage::setupStyles()
 {
-    
+
 }
 
 void SettingsPage::onCategorySelected(int index)
@@ -179,12 +182,120 @@ void SettingsPage::onResetToDefaultsClicked()
 {
     auto reply = QMessageBox::question(
         this,
-        "确认恢复",
-        "确定要恢复所有设置为默认值吗？",
-        QMessageBox::Yes | QMessageBox::No
+        "⚠️ 确认恢复",
+        "确定要恢复所有设置为默认值吗？\n\n"
+        "默认设置：\n"
+        "📁 下载路径: C:/Users/用户名/BiliMusicPlayer_Downloads\n"
+        "🎵 默认音质: 高品质 (192K MP3)\n"
+        "⚡ 并发下载: 3 个任务\n"
+        "💾 数据库: C:/Users/用户名/BiliMusicPlayer/bili_music_player.db\n"
+        "🔧 工具: 内置工具\n"
+        "🎨 界面主题: 浅色\n"
+        "🌐 代理: 关闭\n\n"
+        "⚠️ 当前设置将被覆盖！",
+        QMessageBox::No | QMessageBox::Yes,
+        QMessageBox::No  // 默认选中 No
     );
 
-    if (reply == QMessageBox::Yes) {
-        QMessageBox::information(this, "提示", "恢复默认功能正在开发中...");
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+
+    qDebug() << "🔄 开始恢复默认设置...";
+
+    // 重置 AppConfig 为默认值
+    if (!resetConfigToDefaults()) {
+        QMessageBox::critical(this, "❌ 失败",
+            "恢复默认设置失败！\n请检查文件权限。");
+        return;
+    }
+
+    // 重新加载所有设置页面
+    loadAllSettings();
+
+    qDebug() << "✅ 默认设置已恢复";
+
+    QMessageBox::information(this, "✅ 成功",
+        "所有设置已恢复为默认值！\n\n"
+        "📝 提示：请点击\"保存所有设置\"以持久化更改。");
+}
+
+bool SettingsPage::resetConfigToDefaults()
+{
+    try {
+        AppConfig& config = AppConfig::instance();
+
+        // 获取用户主目录
+        QString userHome = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+
+        // 1️⃣ 下载设置 - 默认值
+        QString defaultDownloadPath = userHome + "/BiliMusicPlayer_Downloads";
+        config.setDownloadPath(defaultDownloadPath);
+        config.setDefaultQualityPreset("high");
+        config.setDefaultAudioFormat(AudioFormat::MP3);
+        config.setMaxConcurrentDownloads(3);
+
+        // 2️⃣ 数据库设置 - 默认值
+        QString defaultDbPath = userHome + "/BiliMusicPlayer/bili_music_player.db";
+        config.setDatabasePath(defaultDbPath);
+
+        // 3️⃣ 工具设置 - 智能检测
+        QString defaultYtDlpPath = findDefaultToolPath("yt-dlp.exe");
+        QString defaultFfmpegPath = findDefaultToolPath("ffmpeg.exe");
+
+        config.setYtDlpPath(defaultYtDlpPath);
+        config.setFfmpegPath(defaultFfmpegPath);
+
+        qDebug() << "  ✅ 工具设置已重置:";
+        qDebug() << "    - yt-dlp:" << defaultYtDlpPath;
+        qDebug() << "    - FFmpeg:" << defaultFfmpegPath;
+
+        // 4️⃣ 界面设置 - 默认值
+        config.setTheme("light");
+
+        // 5️⃣ 高级设置 - 默认值
+        config.setProxyEnabled(false);
+        config.setProxyUrl("");
+
+        // 保存配置
+        if (!config.save()) {
+            qWarning() << "❌ 配置文件保存失败";
+            return false;
+        }
+
+        qDebug() << "✅ 默认设置已保存到配置文件";
+        return true;
+
+    }
+    catch (const std::exception& e) {
+        qCritical() << "❌ 恢复默认设置时发生异常:" << e.what();
+        return false;
     }
 }
+
+QString SettingsPage::findDefaultToolPath(const QString& toolName)
+{
+    QString appDir = QCoreApplication::applicationDirPath();
+
+    // 尝试多个可能的位置
+    QStringList possiblePaths = {
+        appDir + "/" + toolName,                  // app/Debug/yt-dlp.exe
+        appDir + "/../bin/" + toolName,           // bin/yt-dlp.exe (Release)
+        appDir + "/../../bin/" + toolName,        // bin/yt-dlp.exe (Debug)
+    };
+
+    // 查找第一个存在的文件
+    for (const QString& path : possiblePaths) {
+        QString cleanPath = QDir::cleanPath(path);
+        if (QFile::exists(cleanPath)) {
+            qDebug() << "    ✅ 找到工具:" << cleanPath;
+            return cleanPath;
+        }
+    }
+
+    // 如果都不存在，返回最常见的位置
+    QString fallbackPath = QDir::cleanPath(appDir + "/../../bin/" + toolName);
+    qWarning() << "    ⚠️  未找到工具，使用默认路径:" << fallbackPath;
+    return fallbackPath;
+}
+

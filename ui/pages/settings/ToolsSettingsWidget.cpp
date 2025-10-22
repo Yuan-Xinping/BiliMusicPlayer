@@ -84,6 +84,7 @@ void ToolsSettingsWidget::setupUI()
 
     toolsLayout->addLayout(ytdlpLayout);
     toolsLayout->addLayout(ffmpegLayout);
+    toolsLayout->addWidget(m_testAllBtn);
     toolsLayout->addSpacing(10);
     toolsLayout->addWidget(infoLabel);
 
@@ -94,6 +95,8 @@ void ToolsSettingsWidget::setupUI()
         this, &ToolsSettingsWidget::onBrowseYtDlpPathClicked);
     connect(m_browseFfmpegBtn, &QPushButton::clicked,
         this, &ToolsSettingsWidget::onBrowseFfmpegPathClicked);
+    connect(m_testAllBtn, &QPushButton::clicked,
+        this, &ToolsSettingsWidget::onTestAllToolsClicked);
 }
 
 void ToolsSettingsWidget::setupStyles()
@@ -220,4 +223,11 @@ void ToolsSettingsWidget::testFfmpegPath(const QString& path)
         m_ffmpegStatusLabel->setText("❌ 无法执行");
         m_ffmpegStatusLabel->setStyleSheet("color: #F44336;");
     }
+}
+
+void ToolsSettingsWidget::onTestAllToolsClicked()
+{
+    qDebug() << "开始测试所有工具...";
+    testYtDlpPath(m_ytDlpPathInput->text());
+    testFfmpegPath(m_ffmpegPathInput->text());
 }

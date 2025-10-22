@@ -35,6 +35,8 @@ private:
     void loadAllSettings();
     bool validateAllSettings();
     void applyAllSettings();
+    bool resetConfigToDefaults();
+    QString findDefaultToolPath(const QString& toolName);
 
     QHBoxLayout* createButtonLayout();
 

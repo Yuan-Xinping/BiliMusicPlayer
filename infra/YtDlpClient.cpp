@@ -25,28 +25,24 @@ YtDlpClient::~YtDlpClient() {
     }
 }
 
-// 原有方法 - 保持向后兼容
 void YtDlpClient::downloadAudio(const QString& identifier, const QString& outputDir) {
     // 使用默认的高质量MP3配置
     DownloadOptions defaultOptions = DownloadOptions::createPreset("high_quality_mp3");
     startDownload(identifier, outputDir, defaultOptions);
 }
 
-// 新增方法 - 自定义配置（重载）
 void YtDlpClient::downloadAudio(const QString& identifier, const QString& outputDir, const DownloadOptions& options) {
     DownloadOptions audioOptions = options;
     audioOptions.extractAudioOnly = true; // 确保提取音频
     startDownload(identifier, outputDir, audioOptions);
 }
 
-// 新增方法 - 预设配置
 void YtDlpClient::downloadAudioWithPreset(const QString& identifier, const QString& outputDir, const QString& preset) {
     DownloadOptions options = DownloadOptions::createPreset(preset);
     options.extractAudioOnly = true; // 确保提取音频
     startDownload(identifier, outputDir, options);
 }
 
-// 新增方法 - 视频下载
 void YtDlpClient::downloadVideo(const QString& identifier, const QString& outputDir, const DownloadOptions& options) {
     DownloadOptions videoOptions = options;
     videoOptions.extractAudioOnly = false; // 确保下载视频
@@ -105,6 +101,12 @@ QStringList YtDlpClient::buildYtDlpArguments(const QString& identifier, const QS
     QString ffmpegPath = AppConfig::instance().getFfmpegPath();
     if (!ffmpegPath.isEmpty()) {
         args << "--ffmpeg-location" << ffmpegPath;
+    }
+
+    AppConfig& config = AppConfig::instance();
+    if (config.getProxyEnabled() && !config.getProxyUrl().isEmpty()) {
+        args << "--proxy" << config.getProxyUrl();
+        qDebug() << "✅ YtDlpClient: 使用代理:" << config.getProxyUrl();
     }
 
     // 添加下载配置选项

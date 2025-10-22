@@ -45,10 +45,13 @@ target_sources(ui PRIVATE
     themes/themes.qrc
 )
 
+find_package(Qt6 REQUIRED COMPONENTS Network)
+
 target_link_libraries(ui PUBLIC
     Qt6::Core
     Qt6::Widgets
     Qt6::Multimedia
+    Qt6::Network
     common
     viewmodel
     service

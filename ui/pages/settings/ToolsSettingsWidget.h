@@ -17,6 +17,7 @@ public:
 private slots:
     void onBrowseYtDlpPathClicked();
     void onBrowseFfmpegPathClicked();
+	void onTestAllToolsClicked();
 
 private:
     void setupUI();
@@ -31,4 +32,6 @@ private:
     QLineEdit* m_ffmpegPathInput = nullptr;
     QPushButton* m_browseFfmpegBtn = nullptr;
     QLabel* m_ffmpegStatusLabel = nullptr;
+
+	QPushButton* m_testAllBtn = nullptr;
 };
