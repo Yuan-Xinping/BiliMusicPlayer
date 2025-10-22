@@ -1,8 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
 	<qresource prefix="/">
-		<file alias="main.qss">styles/main.qss</file>
-		
 		<file>icons/app_icon.png</file>
 		<file>icons/music_library.png</file>
 		<file>icons/download_manager.png</file>

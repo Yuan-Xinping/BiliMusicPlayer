@@ -1,5 +1,5 @@
 /* BiliMusicPlayer 主样式表*/
-
+/* 已废弃，现在在theme里写dark.qss和light.qss 等主题 */
 /* 全局样式 */
 * {
     font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;

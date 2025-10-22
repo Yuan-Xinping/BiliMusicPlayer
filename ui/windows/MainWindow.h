@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QTimer>
+#include "../themes/ThemeManager.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -12,7 +13,7 @@ QT_END_NAMESPACE
 class PlaybackBar;
 class DownloadManagerPage;
 class SettingsPage;
-class BiliMusicPlayerApp;  // 🔥 前置声明
+class BiliMusicPlayerApp;
 
 class MainWindow : public QMainWindow
 {
@@ -22,7 +23,6 @@ public:
     MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
-    // 🔥 新增：设置应用实例引用
     void setApp(BiliMusicPlayerApp* app);
 
 protected:
@@ -30,6 +30,7 @@ protected:
 
 private slots:
     void onNavigationButtonClicked();
+    void onThemeChanged(ThemeManager::Theme theme);
 
 private:
     void setupTitleBar();
@@ -38,6 +39,7 @@ private:
     void setupStyles();
     void addShadowEffect();
     void switchToPage(int pageIndex);
+    void loadThemeFromConfig();
     QString getEmbeddedStyle() const;
 
     Ui::MainWindow* ui;

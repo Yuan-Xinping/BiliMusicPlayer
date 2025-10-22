@@ -5,13 +5,16 @@
 #include "../../common/entities/Song.h"
 #include "../../app/BiliMusicPlayerApp.h"
 #include "../../service/DownloadService.h"
+#include "../themes/ThemeManager.h"
+#include "../../common/AppConfig.h"
+#include "../pages/settings/SettingsPage.h"
 #include <QApplication>
 #include <QScreen>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
 #include <QGraphicsDropShadowEffect>
-#include "../pages/settings/SettingsPage.h"
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -19,6 +22,7 @@ MainWindow::MainWindow(QWidget* parent)
     , m_testPosition(0)
 {
     Q_INIT_RESOURCE(resources);
+    Q_INIT_RESOURCE(themes);
 
     ui->setupUi(this);
 
@@ -39,10 +43,13 @@ MainWindow::MainWindow(QWidget* parent)
         move(x, y);
     }
 
+    loadThemeFromConfig();
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged,
+        this, &MainWindow::onThemeChanged);
+
     // 初始化各个组件
     setupTitleBar();
     setupPlaybackBar();
-    setupStyles();
     addShadowEffect();
 
     // 默认显示音乐库页面
@@ -136,22 +143,12 @@ void MainWindow::setupPlaybackBar()
 
 void MainWindow::setupStyles()
 {
-    // 先尝试加载资源文件中的样式
-    QFile styleFile(":/main.qss");
-
-    if (styleFile.open(QFile::ReadOnly)) {
-        QString styleSheet = QString::fromUtf8(styleFile.readAll());
-        setStyleSheet(styleSheet);
-        styleFile.close();
-        qDebug() << "样式文件加载成功：: / main.qss";
+    QString currentStyle = styleSheet();
+    if (!currentStyle.isEmpty()) {
+        qDebug() << "✅ 主题样式已应用（长度：" << currentStyle.length() << "字符）";
     }
     else {
-        qDebug() << "资源文件中的样式文件加载失败，使用内嵌样式";
-
-        // 使用内嵌样式
-        QString fallbackStyle = getEmbeddedStyle();
-        setStyleSheet(fallbackStyle);
-        qDebug() << "已应用内嵌后备样式";
+        qWarning() << "⚠️ 样式表为空，可能主题加载失败";
     }
 }
 
@@ -753,3 +750,64 @@ void MainWindow::setApp(BiliMusicPlayerApp* app)
     }
 }
 
+void MainWindow::loadThemeFromConfig()
+{
+    AppConfig& config = AppConfig::instance();
+    QString themeName = config.getTheme();
+
+    qDebug() << "📋 从配置加载主题：" << themeName;
+
+    if (ThemeManager::instance().loadTheme(themeName)) {
+        qDebug() << "✅ 主题加载成功";
+        ThemeManager::instance().applyToWidget(this);
+    }
+    else {
+        qWarning() << "❌ 主题加载失败，使用内嵌样式";
+        QString fallbackStyle = getEmbeddedStyle();
+        setStyleSheet(fallbackStyle);
+    }
+}
+
+void MainWindow::onThemeChanged(ThemeManager::Theme theme)
+{
+    Q_UNUSED(theme);
+
+    qDebug() << "🎨 主题已切换：" << ThemeManager::instance().currentThemeName();
+
+    ThemeManager::instance().applyToWidget(this);
+
+    this->style()->unpolish(this);
+    this->style()->polish(this);
+    this->update();
+
+    QList<QWidget*> allWidgets = this->findChildren<QWidget*>();
+    for (QWidget* widget : allWidgets) {
+        if (widget) {
+            widget->style()->unpolish(widget);
+            widget->style()->polish(widget);
+            widget->update();
+        }
+    }
+
+    if (m_downloadManagerPage) {
+        m_downloadManagerPage->style()->unpolish(m_downloadManagerPage);
+        m_downloadManagerPage->style()->polish(m_downloadManagerPage);
+        m_downloadManagerPage->update();
+        qDebug() << "  - 下载管理页面已刷新";
+    }
+    if (m_settingsPage) {
+        m_settingsPage->style()->unpolish(m_settingsPage);
+        m_settingsPage->style()->polish(m_settingsPage);
+        m_settingsPage->update();
+        qDebug() << "  - 设置页面已刷新";
+    }
+    if (m_playbackBar) {
+        m_playbackBar->style()->unpolish(m_playbackBar);
+        m_playbackBar->style()->polish(m_playbackBar);
+        m_playbackBar->update();
+        qDebug() << "  - 播放栏已刷新";
+    }
+
+
+    qDebug() << "✅ 所有组件已更新主题";
+}

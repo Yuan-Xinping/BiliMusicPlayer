@@ -51,7 +51,7 @@ void SettingsPage::setupSidebar()
     m_categoryList->addItem("📁 下载设置");
     m_categoryList->addItem("💾 数据库设置");
     m_categoryList->addItem("🔧 工具路径");
-    //m_categoryList->addItem("🎨 界面设置");
+    m_categoryList->addItem("🎨 界面设置");
     m_categoryList->addItem("🔬 高级设置");
 
     m_categoryList->setCurrentRow(0);
@@ -73,7 +73,7 @@ void SettingsPage::setupSubPages()
     m_subPagesStack->addWidget(m_downloadSettings);
     m_subPagesStack->addWidget(m_databaseSettings);
     m_subPagesStack->addWidget(m_toolsSettings);
-    //m_subPagesStack->addWidget(m_uiSettings);
+    m_subPagesStack->addWidget(m_uiSettings);
     m_subPagesStack->addWidget(m_advancedSettings);
 }
 
@@ -106,62 +106,7 @@ QHBoxLayout* SettingsPage::createButtonLayout()
 
 void SettingsPage::setupStyles()
 {
-    setStyleSheet(R"(
-        QListWidget#settingsSidebar {
-            background-color: #1E1E1E;
-            border: 2px solid #444444;
-            border-radius: 12px;
-            padding: 10px;
-            font-size: 13px;
-        }
-        
-        QListWidget#settingsSidebar::item {
-            color: #CCCCCC;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 2px 0px;
-        }
-        
-        QListWidget#settingsSidebar::item:hover {
-            background-color: rgba(251, 114, 153, 0.1);
-            color: #FFFFFF;
-        }
-        
-        QListWidget#settingsSidebar::item:selected {
-            background-color: #FB7299;
-            color: #FFFFFF;
-            font-weight: bold;
-        }
-        
-        QPushButton#saveBtn {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #FF8BB5, stop:1 #FB7299);
-            border: none;
-            border-radius: 8px;
-            color: #FFFFFF;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        QPushButton#saveBtn:hover {
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 #FFB3D1, stop:1 #FF8BB5);
-        }
-        
-        QPushButton#resetBtn {
-            background-color: #333333;
-            border: 2px solid #555555;
-            border-radius: 8px;
-            color: #CCCCCC;
-            font-size: 14px;
-        }
-        
-        QPushButton#resetBtn:hover {
-            background-color: #444444;
-            border-color: #FB7299;
-            color: #FFFFFF;
-        }
-    )");
+    
 }
 
 void SettingsPage::onCategorySelected(int index)
@@ -204,15 +149,12 @@ void SettingsPage::applyAllSettings()
 
 void SettingsPage::onSaveAllSettingsClicked()
 {
-    // 1. 验证所有设置
     if (!validateAllSettings()) {
         return;
     }
 
-    // 2. 应用所有设置（仅修改内存中的配置）
     applyAllSettings();
 
-    // 3. 🔥 保存配置到文件
     AppConfig& config = AppConfig::instance();
     if (!config.save()) {
         qWarning() << "❌ 配置文件保存失败";
@@ -221,7 +163,6 @@ void SettingsPage::onSaveAllSettingsClicked()
         return;
     }
 
-    // 4. 日志输出
     qDebug() << "✅ 所有设置已保存到配置文件";
     qDebug() << "  - 下载路径:" << config.getDownloadPath();
     qDebug() << "  - 默认音质:" << config.getDefaultQualityPreset();

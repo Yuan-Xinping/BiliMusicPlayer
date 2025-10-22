@@ -1,10 +1,13 @@
 #pragma once
-
+#include <QObject>
 #include <QString>
+#include <QStringList>
 #include "entities/Song.h"
 #include "../infra/DownloadConfig.h"
 
-class AppConfig {
+class AppConfig : public QObject{
+    Q_OBJECT
+
 public:
     static AppConfig& instance();
 
@@ -37,7 +40,13 @@ public:
     void setProxyEnabled(bool enabled);
     void setProxyUrl(const QString& url);
 
+	bool isValidTheme(const QString& theme) const;
+	static QStringList availableThemes();
+
     QString getConfigFilePath() const;
+
+signals:
+	void themeChanged(const QString& theme);
 
 private:
     AppConfig();
@@ -50,6 +59,8 @@ private:
     void saveToJson(class QJsonObject& json) const;
     QString getBundledBinaryPath(const QString& binaryName) const;
     void ensureDatabaseDirectoryExists();
+
+    static QStringList s_validThemes;
 
     // 下载设置
     QString m_downloadPath;

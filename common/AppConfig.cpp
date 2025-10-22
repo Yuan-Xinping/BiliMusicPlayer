@@ -7,12 +7,14 @@
 #include <QCoreApplication>
 #include <QDebug>
 
+QStringList AppConfig::s_validThemes = { "dark", "light" };
+
 AppConfig& AppConfig::instance() {
     static AppConfig instance;
     return instance;
 }
 
-AppConfig::AppConfig() {
+AppConfig::AppConfig() : QObject(nullptr){
     setDefaultValues();
 }
 
@@ -219,7 +221,14 @@ void AppConfig::loadFromJson(const QJsonObject& json) {
     }
 
     if (json.contains("theme")) {
-        m_theme = json["theme"].toString();
+        QString loadedTheme = json["theme"].toString();
+        if (isValidTheme(loadedTheme)) {
+            m_theme = loadedTheme;
+        }
+        else {
+            qWarning() << "⚠️ 配置文件中的主题无效：" << loadedTheme;
+            m_theme = "dark";
+        }
     }
 
     if (json.contains("fontSize")) {
@@ -249,6 +258,13 @@ void AppConfig::saveToJson(QJsonObject& json) const {
     json["proxyUrl"] = m_proxyUrl;
 }
 
+bool AppConfig::isValidTheme(const QString& theme) const {
+    return s_validThemes.contains(theme);
+}
+
+QStringList AppConfig::availableThemes() {
+    return s_validThemes;
+}
 // Getters
 QString AppConfig::getDownloadPath() const { return m_downloadPath; }
 QString AppConfig::getYtDlpPath() const { return m_ytDlpPath; }
@@ -270,7 +286,18 @@ void AppConfig::setDefaultQualityPreset(const QString& preset) { m_defaultQualit
 void AppConfig::setDefaultAudioFormat(AudioFormat format) { m_defaultAudioFormat = format; }
 void AppConfig::setMaxConcurrentDownloads(int count) { m_maxConcurrentDownloads = count; }
 void AppConfig::setDatabasePath(const QString& path) { m_databasePath = path; }
-void AppConfig::setTheme(const QString& theme) { m_theme = theme; }
 void AppConfig::setFontSize(int size) { m_fontSize = size; }
 void AppConfig::setProxyEnabled(bool enabled) { m_proxyEnabled = enabled; }
 void AppConfig::setProxyUrl(const QString& url) { m_proxyUrl = url; }
+void AppConfig::setTheme(const QString& theme) {
+    if (m_theme == theme) return; 
+
+    if (isValidTheme(theme)) {
+        m_theme = theme;
+        qDebug() << "✅ 主题已设置为：" << theme;
+        emit themeChanged(theme);
+    }
+    else {
+        qWarning() << "❌ 无效的主题名称：" << theme;
+    }
+}

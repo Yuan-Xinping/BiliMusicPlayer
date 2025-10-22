@@ -19,21 +19,7 @@
     <height>600</height>
    </size>
   </property>
-  <property name="styleSheet">
-   <string>QMainWindow {
-    background-color: #1A1A1A;
-    color: #FFFFFF;
-}</string>
-  </property>
   <widget class="QWidget" name="centralwidget">
-   <property name="styleSheet">
-    <string>QWidget#centralwidget {
-    background-color: #1A1A1A;
-    border: none;
-    margin: 0px;
-    padding: 0px;
-}</string>
-   </property>
    <layout class="QVBoxLayout" name="mainLayout">
     <property name="spacing">
      <number>0</number>
@@ -50,6 +36,7 @@
     <property name="bottomMargin">
      <number>0</number>
     </property>
+    <!-- 标题栏 -->
     <item>
      <widget class="QWidget" name="titleBarWidget">
       <property name="sizePolicy">
@@ -70,14 +57,9 @@
         <height>60</height>
        </size>
       </property>
-      <property name="styleSheet">
-       <string>#titleBarWidget {
-    background-color: #2A2A2A;
-    border-bottom: 2px solid #FB7299;
-}</string>
-      </property>
      </widget>
     </item>
+    <!-- 内容区域 -->
     <item>
      <widget class="QStackedWidget" name="contentStackedWidget">
       <property name="sizePolicy">
@@ -86,14 +68,10 @@
         <verstretch>1</verstretch>
        </sizepolicy>
       </property>
-      <property name="styleSheet">
-       <string>QStackedWidget {
-    background-color: #1A1A1A;
-}</string>
-      </property>
       <property name="currentIndex">
        <number>0</number>
       </property>
+      <!-- 音乐库页面 -->
       <widget class="QWidget" name="musicLibraryPage">
        <layout class="QHBoxLayout" name="libraryLayout">
         <property name="spacing">
@@ -124,15 +102,11 @@
           <property name="alignment">
            <set>Qt::AlignCenter</set>
           </property>
-          <property name="styleSheet">
-           <string>color: #666666;
-font-size: 18px;
-background-color: transparent;</string>
-          </property>
          </widget>
         </item>
        </layout>
       </widget>
+      <!-- 下载管理页面 -->
       <widget class="QWidget" name="downloadManagerPage">
        <layout class="QHBoxLayout" name="downloadLayout">
         <property name="spacing">
@@ -163,15 +137,11 @@ background-color: transparent;</string>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
           </property>
-          <property name="styleSheet">
-           <string>color: #666666;
-font-size: 18px;
-background-color: transparent;</string>
-          </property>
          </widget>
         </item>
        </layout>
       </widget>
+      <!-- 设置页面 -->
       <widget class="QWidget" name="settingsPage">
        <layout class="QHBoxLayout" name="settingsLayout">
         <property name="spacing">
@@ -202,17 +172,13 @@ background-color: transparent;</string>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
           </property>
-          <property name="styleSheet">
-           <string>color: #666666;
-font-size: 18px;
-background-color: transparent;</string>
-          </property>
          </widget>
         </item>
        </layout>
       </widget>
      </widget>
     </item>
+    <!-- 播放栏 -->
     <item>
      <widget class="QWidget" name="playbackBarWidget">
       <property name="sizePolicy">
@@ -233,15 +199,11 @@ background-color: transparent;</string>
         <height>90</height>
        </size>
       </property>
-      <property name="styleSheet">
-       <string>#playbackBarWidget {
-    background-color: #2A2A2A;
-    border-top: 1px solid #444444;
-}</string>
-      </property>
      </widget>
     </item>
    </layout>
   </widget>
  </widget>
+ <resources/>
+ <connections/>
 </ui>

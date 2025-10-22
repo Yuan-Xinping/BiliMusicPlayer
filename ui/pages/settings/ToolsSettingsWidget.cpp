@@ -98,76 +98,7 @@ void ToolsSettingsWidget::setupUI()
 
 void ToolsSettingsWidget::setupStyles()
 {
-    setStyleSheet(R"(
-        QGroupBox#settingsGroup {
-            font-size: 14px;
-            font-weight: bold;
-            border: 2px solid #444444;
-            border-radius: 12px;
-            margin-top: 12px;
-            padding-top: 20px;
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 rgba(255,255,255,0.03),
-                stop:1 rgba(255,255,255,0.01));
-        }
-        
-        QGroupBox#settingsGroup::title {
-            subcontrol-origin: margin;
-            left: 15px;
-            padding: 0 8px;
-            color: #FB7299;
-        }
-        
-        QLabel#settingsLabel {
-            color: #CCCCCC;
-            font-size: 13px;
-            font-weight: normal;
-        }
-        
-        QLabel#statusLabel {
-            color: #AAAAAA;
-            font-size: 11px;
-            padding: 4px 8px;
-            background-color: #2A2A2A;
-            border-radius: 4px;
-        }
-        
-        QLabel#infoLabel {
-            color: #AAAAAA;
-            font-size: 12px;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.02);
-            border: 1px solid #333333;
-            border-radius: 6px;
-        }
-        
-        QLineEdit#settingsInput {
-            padding: 8px;
-            border: 2px solid #444444;
-            border-radius: 6px;
-            background-color: #252525;
-            color: #FFFFFF;
-            font-size: 12px;
-        }
-        
-        QLineEdit#settingsInput:focus {
-            border: 2px solid #FB7299;
-        }
-        
-        QPushButton#browseBtn {
-            background-color: #333333;
-            border: 2px solid #555555;
-            border-radius: 6px;
-            color: #CCCCCC;
-            font-size: 12px;
-        }
-        
-        QPushButton#browseBtn:hover {
-            background-color: #444444;
-            border-color: #FB7299;
-            color: #FFFFFF;
-        }
-    )");
+    
 }
 
 void ToolsSettingsWidget::loadSettings()
@@ -180,14 +111,13 @@ void ToolsSettingsWidget::loadSettings()
     m_ytDlpPathInput->setText(ytDlpPath);
     m_ffmpegPathInput->setText(ffmpegPath);
 
-    // 🔥 自动测试
     testYtDlpPath(ytDlpPath);
     testFfmpegPath(ffmpegPath);
 }
 
 bool ToolsSettingsWidget::validate()
 {
-    return true; // 工具路径可以为空
+    return true;
 }
 
 void ToolsSettingsWidget::applySettings()
@@ -224,7 +154,7 @@ void ToolsSettingsWidget::onBrowseFfmpegPathClicked()
 
     if (!file.isEmpty()) {
         m_ffmpegPathInput->setText(file);
-        testFfmpegPath(file);  // 🔥 自动测试
+        testFfmpegPath(file);
     }
 }
 

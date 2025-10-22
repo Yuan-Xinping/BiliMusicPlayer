@@ -7,10 +7,13 @@ add_library(ui STATIC)
 target_sources(ui PRIVATE
     # ========== 窗口 ==========
     windows/MainWindow.cpp
+    windows/MainWindow.h
     windows/MainWindow.ui
     
     # ========== 组件 ==========
+    components/PlaybackBar.h
     components/PlaybackBar.cpp
+    components/HoverButton.h
     components/HoverButton.cpp
     components/DownloadTaskItem.h
     components/DownloadTaskItem.cpp
@@ -32,15 +35,23 @@ target_sources(ui PRIVATE
     pages/settings/UISettingsWidget.cpp
     pages/settings/AdvancedSettingsWidget.h
     pages/settings/AdvancedSettingsWidget.cpp
-    
+
+    # ========== 主题管理 ==========
+    themes/ThemeManager.cpp
+    themes/ThemeManager.h
+
     # ========== 资源 ==========
     resources.qrc
+    themes/themes.qrc
 )
 
 target_link_libraries(ui PUBLIC
-    viewmodel
-    common
+    Qt6::Core
     Qt6::Widgets
+    Qt6::Multimedia
+    common
+    viewmodel
+    service
 )
 
 target_include_directories(ui PUBLIC

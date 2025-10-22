@@ -1,7 +1,7 @@
 #pragma once
 #include <QWidget>
 #include <QComboBox>
-#include <QSpinBox>
+#include "../../themes/ThemeManager.h"
 
 class UISettingsWidget : public QWidget {
     Q_OBJECT
@@ -13,10 +13,12 @@ public:
     bool validate();
     void applySettings();
 
+private slots:
+    void onThemeChanged(int index);
+
 private:
     void setupUI();
     void setupStyles();
 
     QComboBox* m_themeCombo = nullptr;
-    QSpinBox* m_fontSizeSpin = nullptr;
 };

@@ -1,0 +1,901 @@
+/* ========================================
+   ☀️ BiliMusicPlayer - 浅色主题
+   ======================================== */
+
+/* 颜色变量定义 */
+/* @primary: #FB7299 */
+/* @primary-hover: #FF8BB5 */
+/* @primary-active: #E85D85 */
+/* @background: #F5F5F5 */
+/* @surface: #FFFFFF */
+/* @surface-light: #FAFAFA */
+/* @border: #E0E0E0 */
+/* @text: #212121 */
+/* @text-secondary: #757575 */
+/* @text-tertiary: #BDBDBD */
+/* @success: #4CAF50 */
+/* @error: #D32F2F */
+/* @warning: #F57C00 */
+
+/* ========================================
+   全局样式
+   ======================================== */
+* {
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+
+QMainWindow {
+    background-color: #F5F5F5;
+    color: #212121;
+    border: 1px solid #E0E0E0;
+    border-radius: 16px;
+}
+
+QWidget#centralwidget {
+    background-color: #F5F5F5;
+    border: none;
+    margin: 0px;
+    padding: 0px;
+    border-radius: 16px;
+}
+
+/* ========================================
+   🎯 标题栏
+   ======================================== */
+#titleBarWidget {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFFFF, stop:1 #FAFAFA);
+    border-bottom: 2px solid #FB7299;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    min-height: 55px;
+    max-height: 55px;
+}
+
+/* 窗口控制按钮 */
+QPushButton#windowControlButton {
+    background-color: transparent;
+    border: none;
+    color: #757575;
+    font-size: 14px;
+    border-radius: 8px;
+    margin: 0px 2px;
+    min-width: 35px;
+    min-height: 35px;
+    max-width: 35px;
+    max-height: 35px;
+}
+
+QPushButton#windowControlButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #212121;
+}
+
+QPushButton#windowControlButton:pressed {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 导航按钮 */
+QPushButton#navigationButton {
+    background-color: transparent;
+    border: none;
+    color: #757575;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 6px 16px;
+    margin: 0px 1px;
+    border-radius: 12px;
+    min-width: 100px;
+}
+
+QPushButton#navigationButton:hover {
+    background-color: rgba(251, 114, 153, 0.1);
+    color: #212121;
+}
+
+QPushButton#navigationButton:checked {
+    background-color: #FB7299;
+    color: #FFFFFF;
+}
+
+QPushButton#navigationButton:pressed {
+    background-color: #E85D85;
+}
+
+/* ========================================
+   🎵 播放栏
+   ======================================== */
+#playbackBarWidget {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFFFFF, stop:1 #FAFAFA);
+    border-top: 1px solid #E0E0E0;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    min-height: 90px;
+    max-height: 90px;
+}
+
+PlaybackBar {
+    background: transparent;
+    max-height: 90px;
+    min-height: 90px;
+}
+
+/* 播放控制按钮 */
+QPushButton#controlButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(0,0,0,0.08),
+        stop:1 rgba(0,0,0,0.05));
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 20px;
+    color: #616161;
+    font-size: 16px;
+    font-weight: bold;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
+}
+
+QPushButton#controlButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.2),
+        stop:1 rgba(251,114,153,0.15));
+    border: 1px solid rgba(251,114,153,0.3);
+    color: #212121;
+}
+
+QPushButton#controlButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.3),
+        stop:1 rgba(251,114,153,0.2));
+}
+
+/* 主播放按钮 */
+QPushButton#playPauseButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF8BB5, stop:0.5 #FB7299, stop:1 #E85D85);
+    border: 2px solid rgba(251, 114, 153, 0.3);
+    border-radius: 26px;
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: bold;
+    min-width: 52px;
+    min-height: 52px;
+    max-width: 52px;
+    max-height: 52px;
+}
+
+QPushButton#playPauseButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFB3D1, stop:0.5 #FF8BB5, stop:1 #FB7299);
+    border: 2px solid rgba(251, 114, 153, 0.5);
+}
+
+QPushButton#playPauseButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #E85D85, stop:0.5 #D4527A, stop:1 #C44A75);
+}
+
+/* 模式切换按钮 */
+QPushButton#modeButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(0,0,0,0.06),
+        stop:1 rgba(0,0,0,0.03));
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 16px;
+    color: #757575;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+    min-width: 80px;
+    min-height: 32px;
+    max-height: 32px;
+}
+
+QPushButton#modeButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.15),
+        stop:1 rgba(251,114,153,0.1));
+    color: #212121;
+    border: 1px solid rgba(251,114,153,0.3);
+}
+
+QPushButton#modeButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.25),
+        stop:1 rgba(251,114,153,0.15));
+}
+
+/* 音量和播放列表按钮 */
+QPushButton#volumeButton,
+QPushButton#playlistButton {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(0,0,0,0.05),
+        stop:1 rgba(0,0,0,0.02));
+    border: 1px solid rgba(0,0,0,0.08);
+    color: #757575;
+    font-size: 16px;
+    border-radius: 18px;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+}
+
+QPushButton#volumeButton:hover,
+QPushButton#playlistButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(251,114,153,0.12),
+        stop:1 rgba(251,114,153,0.08));
+    color: #212121;
+    border: 1px solid rgba(251,114,153,0.2);
+}
+
+/* 进度条 */
+QSlider#positionSlider {
+    max-height: 20px;
+}
+
+QSlider#positionSlider::groove:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #E0E0E0, stop:1 #D0D0D0);
+    height: 5px;
+    border-radius: 2px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+QSlider#positionSlider::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF8BB5, stop:1 #FB7299);
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    margin: -7px 0;
+    border: 2px solid #FFFFFF;
+}
+
+QSlider#positionSlider::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFB3D1, stop:1 #FF8BB5);
+}
+
+QSlider#positionSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #FB7299, stop:1 #FF8BB5);
+    border-radius: 2px;
+}
+
+/* 音量滑块 */
+QSlider#volumeSlider {
+    max-width: 90px;
+    max-height: 16px;
+}
+
+QSlider#volumeSlider::groove:horizontal {
+    background: rgba(0,0,0,0.1);
+    height: 4px;
+    border-radius: 2px;
+}
+
+QSlider#volumeSlider::handle:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #757575, stop:1 #616161);
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    margin: -5px 0;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+QSlider#volumeSlider::handle:horizontal:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #616161, stop:1 #424242);
+}
+
+QSlider#volumeSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #757575, stop:1 #9E9E9E);
+    border-radius: 2px;
+}
+
+/* 播放栏标签 */
+#songTitle {
+    color: #212121;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+#artistName {
+    color: #757575;
+    font-size: 13px;
+}
+
+#timeLabel {
+    color: #757575;
+    font-size: 12px;
+    font-family: "Consolas", "Monaco", monospace;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    padding: 2px 6px;
+}
+
+/* ========================================
+   ⚙️ 设置页面
+   ======================================== */
+
+/* 设置侧边栏 */
+QListWidget#settingsSidebar {
+    background-color: #FFFFFF;
+    border: 2px solid #E0E0E0;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 13px;
+}
+
+QListWidget#settingsSidebar::item {
+    color: #757575;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 2px 0px;
+}
+
+QListWidget#settingsSidebar::item:hover {
+    background-color: rgba(251, 114, 153, 0.1);
+    color: #212121;
+}
+
+QListWidget#settingsSidebar::item:selected {
+    background-color: #FB7299;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+/* 设置分组框 */
+QGroupBox#settingsGroup {
+    font-size: 14px;
+    font-weight: bold;
+    border: 2px solid #E0E0E0;
+    border-radius: 12px;
+    margin-top: 12px;
+    padding-top: 20px;
+    background: #FFFFFF;
+}
+
+QGroupBox#settingsGroup::title {
+    subcontrol-origin: margin;
+    left: 15px;
+    padding: 0 8px;
+    color: #FB7299;
+}
+
+/* 危险操作区域 */
+QGroupBox#dangerZone {
+    font-size: 13px;
+    font-weight: bold;
+    border: 2px solid #D32F2F;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding-top: 15px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(211,47,47,0.08),
+        stop:1 rgba(211,47,47,0.03));
+}
+
+QGroupBox#dangerZone::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 6px;
+    color: #D32F2F;
+}
+
+/* 设置标签 */
+QLabel#settingsLabel,
+QLabel#inputLabel {
+    color: #757575;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+QLabel#hintLabel {
+    color: #BDBDBD;
+    font-size: 11px;
+    font-style: italic;
+}
+
+QLabel#infoLabel {
+    color: #757575;
+    font-size: 12px;
+    padding: 10px;
+    background-color: #FAFAFA;
+    border: 1px solid #E0E0E0;
+    border-radius: 6px;
+}
+
+QLabel#statusLabel {
+    color: #757575;
+    font-size: 11px;
+    padding: 4px 8px;
+    background-color: #FAFAFA;
+    border-radius: 4px;
+}
+
+QLabel#warningLabel {
+    color: #D32F2F;
+    font-size: 12px;
+    padding: 6px;
+}
+
+/* 设置输入框 */
+QLineEdit#settingsInput {
+    padding: 8px;
+    border: 2px solid #E0E0E0;
+    border-radius: 6px;
+    background-color: #FFFFFF;
+    color: #212121;
+    font-size: 12px;
+}
+
+QLineEdit#settingsInput:focus {
+    border: 2px solid #FB7299;
+}
+
+QLineEdit#settingsInput:disabled {
+    background-color: #FAFAFA;
+    color: #BDBDBD;
+}
+
+/* 设置下拉框 */
+QComboBox#settingsCombo {
+    padding: 6px;
+    border: 2px solid #E0E0E0;
+    border-radius: 6px;
+    background-color: #FFFFFF;
+    color: #212121;
+    font-size: 12px;
+}
+
+QComboBox#settingsCombo:disabled {
+    background-color: #FAFAFA;
+    color: #BDBDBD;
+    border-color: #E0E0E0;
+}
+
+QComboBox#settingsCombo::drop-down {
+    border: none;
+    width: 25px;
+}
+
+QComboBox#settingsCombo::down-arrow {
+    image: none;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #757575;
+    margin-right: 8px;
+}
+
+QComboBox#settingsCombo QAbstractItemView {
+    background-color: #FFFFFF;
+    color: #212121;
+    border: 2px solid #E0E0E0;
+    selection-background-color: #FB7299;
+    selection-color: #FFFFFF;
+}
+
+/* 设置数字框 */
+QSpinBox#settingsSpin {
+    padding: 6px 10px;
+    border: 2px solid #E0E0E0;
+    border-radius: 6px;
+    background-color: #FFFFFF;
+    color: #212121;
+    font-size: 12px;
+    min-width: 120px;
+}
+
+QSpinBox#settingsSpin::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: left;
+    width: 20px;
+    border-right: 1px solid #E0E0E0;
+    background-color: #FAFAFA;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+QSpinBox#settingsSpin::down-button:hover {
+    background-color: #FB7299;
+}
+
+QSpinBox#settingsSpin::down-arrow {
+    image: none;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 4px solid #757575;
+}
+
+QSpinBox#settingsSpin::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: right;
+    width: 20px;
+    border-left: 1px solid #E0E0E0;
+    background-color: #FAFAFA;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+
+QSpinBox#settingsSpin::up-button:hover {
+    background-color: #FB7299;
+}
+
+QSpinBox#settingsSpin::up-arrow {
+    image: none;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-bottom: 4px solid #757575;
+}
+
+/* 设置复选框 */
+QCheckBox#settingsCheckbox {
+    color: #757575;
+    font-size: 12px;
+}
+
+QCheckBox#settingsCheckbox::indicator {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #E0E0E0;
+    border-radius: 4px;
+    background-color: #FFFFFF;
+}
+
+QCheckBox#settingsCheckbox::indicator:checked {
+    background-color: #FB7299;
+    border-color: #FB7299;
+}
+
+/* 设置按钮 */
+QPushButton#saveBtn {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF8BB5, stop:1 #FB7299);
+    border: none;
+    border-radius: 8px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QPushButton#saveBtn:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFB3D1, stop:1 #FF8BB5);
+}
+
+QPushButton#resetBtn {
+    background-color: #FAFAFA;
+    border: 2px solid #E0E0E0;
+    border-radius: 8px;
+    color: #757575;
+    font-size: 14px;
+}
+
+QPushButton#resetBtn:hover {
+    background-color: #FFFFFF;
+    border-color: #FB7299;
+    color: #212121;
+}
+
+QPushButton#browseBtn {
+    background-color: #FAFAFA;
+    border: 2px solid #E0E0E0;
+    border-radius: 6px;
+    color: #757575;
+    font-size: 12px;
+    padding: 6px;
+}
+
+QPushButton#browseBtn:hover {
+    background-color: #FFFFFF;
+    border-color: #FB7299;
+    color: #212121;
+}
+
+QPushButton#dangerBtn {
+    background-color: #D32F2F;
+    border: none;
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 12px;
+    padding: 8px 16px;
+}
+
+QPushButton#dangerBtn:hover {
+    background-color: #E53935;
+}
+
+QPushButton#dangerBtn:pressed {
+    background-color: #C62828;
+}
+
+/* ========================================
+   📥 下载管理页面
+   ======================================== */
+
+QGroupBox#downloadInputGroup {
+    font-size: 14px;
+    font-weight: bold;
+    border: 2px solid #E0E0E0;
+    border-radius: 12px;
+    margin-top: 12px;
+    padding-top: 20px;
+    background: #FFFFFF;
+}
+
+QGroupBox#downloadInputGroup::title {
+    subcontrol-origin: margin;
+    left: 15px;
+    padding: 0 8px;
+    color: #FB7299;
+}
+
+QLineEdit#urlInput {
+    padding: 10px;
+    border: 2px solid #E0E0E0;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    color: #212121;
+    font-size: 13px;
+}
+
+QLineEdit#urlInput:focus {
+    border: 2px solid #FB7299;
+}
+
+QComboBox#qualityCombo {
+    padding: 8px;
+    border: 2px solid #E0E0E0;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+    color: #212121;
+}
+
+QComboBox#qualityCombo::drop-down {
+    border: none;
+    width: 30px;
+}
+
+QComboBox#qualityCombo::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #757575;
+    margin-right: 8px;
+}
+
+QComboBox#qualityCombo QAbstractItemView {
+    background-color: #FFFFFF;
+    color: #212121;
+    border: 2px solid #E0E0E0;
+    border-radius: 6px;
+    selection-background-color: #FB7299;
+    selection-color: #FFFFFF;
+    padding: 4px;
+}
+
+QComboBox#qualityCombo QAbstractItemView::item {
+    padding: 8px;
+    border-radius: 4px;
+}
+
+QComboBox#qualityCombo QAbstractItemView::item:hover {
+    background-color: rgba(251, 114, 153, 0.15);
+}
+
+QPushButton#startDownloadBtn {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FF8BB5, stop:1 #FB7299);
+    border: none;
+    border-radius: 8px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 150px;
+}
+
+QPushButton#startDownloadBtn:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #FFB3D1, stop:1 #FF8BB5);
+}
+
+QPushButton#batchDownloadBtn,
+QPushButton#controlBtn {
+    background-color: #FAFAFA;
+    border: 2px solid #E0E0E0;
+    border-radius: 8px;
+    color: #757575;
+    font-size: 13px;
+    min-width: 120px;
+}
+
+QPushButton#batchDownloadBtn:hover,
+QPushButton#controlBtn:hover {
+    background-color: #FFFFFF;
+    border-color: #FB7299;
+    color: #212121;
+}
+
+QPushButton#openFolderBtn {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #66BB6A, stop:1 #4CAF50);
+    border: none;
+    border-radius: 8px;
+    color: #FFFFFF;
+    font-size: 13px;
+    min-width: 140px;
+}
+
+QPushButton#openFolderBtn:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #81C784, stop:1 #66BB6A);
+}
+
+QLabel#downloadStatusLabel {
+    color: #757575;
+    font-size: 13px;
+    padding: 5px;
+}
+
+QListWidget#downloadQueueList {
+    background-color: #FFFFFF;
+    border: none;
+    padding: 10px;
+    color: #212121;
+    font-size: 14px;
+}
+
+QListWidget#downloadQueueList::item {
+    background-color: transparent;
+    color: #212121;
+    padding: 4px;
+}
+
+QListWidget#downloadQueueList::item:hover {
+    background-color: rgba(251, 114, 153, 0.08);
+}
+
+QListWidget#downloadQueueList::item:selected {
+    background-color: rgba(251, 114, 153, 0.15);
+}
+
+QTableWidget#downloadHistoryTable {
+    background-color: #FFFFFF;
+    gridline-color: #E0E0E0;
+    border: none;
+    color: #212121;
+    font-size: 14px;
+}
+
+QTableWidget#downloadHistoryTable::item {
+    padding: 8px;
+    color: #212121;
+}
+
+QTableWidget#downloadHistoryTable::item:hover {
+    background-color: rgba(251, 114, 153, 0.08);
+}
+
+QTableWidget#downloadHistoryTable::item:selected {
+    background-color: rgba(251, 114, 153, 0.2);
+    color: #212121;
+}
+
+QHeaderView::section {
+    background-color: #FAFAFA;
+    color: #FB7299;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 8px;
+    border: none;
+    border-bottom: 2px solid #FB7299;
+}
+
+/* ========================================
+   📑 Tab 控件样式
+   ======================================== */
+
+QTabWidget::pane {
+    border: 2px solid #E0E0E0;
+    border-radius: 8px;
+    background: #FFFFFF;
+}
+
+QTabBar::tab {
+    background: #FAFAFA;
+    color: #757575;
+    padding: 8px 16px;
+    border: 1px solid #E0E0E0;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    min-width: 100px;
+}
+
+QTabBar::tab:hover {
+    background: rgba(251, 114, 153, 0.1);
+    color: #212121;
+}
+
+QTabBar::tab:selected {
+    background: #FB7299;
+    color: #FFFFFF;
+    font-weight: bold;
+}
+
+QTabBar::tab:!selected {
+    margin-top: 3px;
+}
+
+/* ========================================
+   📜 滚动条样式
+   ======================================== */
+
+/* 垂直滚动条 */
+QScrollBar:vertical {
+    background: #FAFAFA;
+    width: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background: #BDBDBD;
+    border-radius: 6px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #FB7299;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* 水平滚动条 */
+QScrollBar:horizontal {
+    background: #FAFAFA;
+    height: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #BDBDBD;
+    border-radius: 6px;
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #FB7299;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+}
+
+/* ========================================
+   🎵 PlaybackBar 组件样式
+   ======================================== */
+
+PlaybackBar QLabel#songTitle {
+    color: #212121;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0px;
+    padding: 0px;
+}
+
+PlaybackBar QLabel#artistName {
+    color: #757575;
+
+

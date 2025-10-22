@@ -4,12 +4,17 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QMessageBox>
 
 UISettingsWidget::UISettingsWidget(QWidget* parent)
     : QWidget(parent)
 {
     setupUI();
     setupStyles();
+
+    // 连接主题切换信号
+    connect(m_themeCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this, &UISettingsWidget::onThemeChanged);
 }
 
 void UISettingsWidget::setupUI()
@@ -21,7 +26,6 @@ void UISettingsWidget::setupUI()
     QGroupBox* uiGroup = new QGroupBox("🎨 界面设置");
     uiGroup->setObjectName("settingsGroup");
     QVBoxLayout* uiLayout = new QVBoxLayout(uiGroup);
-    uiLayout->setSpacing(12);
 
     // 主题选择
     QHBoxLayout* themeLayout = new QHBoxLayout();
@@ -31,40 +35,23 @@ void UISettingsWidget::setupUI()
 
     m_themeCombo = new QComboBox();
     m_themeCombo->setObjectName("settingsCombo");
-    m_themeCombo->addItem("🌙 深色主题", "dark");
-    m_themeCombo->addItem("☀️ 浅色主题", "light");
+    m_themeCombo->addItem("🌙 深色主题", static_cast<int>(ThemeManager::Theme::Dark));
+    m_themeCombo->addItem("☀️ 浅色主题", static_cast<int>(ThemeManager::Theme::Light));
 
     themeLayout->addWidget(themeLabel);
     themeLayout->addWidget(m_themeCombo);
     themeLayout->addStretch();
 
-    // 字体大小
-    QHBoxLayout* fontLayout = new QHBoxLayout();
-    QLabel* fontLabel = new QLabel("字体大小:");
-    fontLabel->setFixedWidth(100);
-    fontLabel->setObjectName("settingsLabel");
-
-    m_fontSizeSpin = new QSpinBox();
-    m_fontSizeSpin->setObjectName("settingsSpin");
-    m_fontSizeSpin->setRange(10, 20);
-    m_fontSizeSpin->setValue(13);
-    m_fontSizeSpin->setSuffix(" px");
-
-    fontLayout->addWidget(fontLabel);
-    fontLayout->addWidget(m_fontSizeSpin);
-    fontLayout->addStretch();
-
     // 说明文本
     QLabel* infoLabel = new QLabel(
-        "⚠️ 注意：\n"
-        "• 主题切换功能暂不可用\n"
-        "• 字体大小需要重启应用后生效"
+        "💡 提示：\n"
+        "• 主题切换会立即生效\n"
+        "• 建议在切换后保存设置"
     );
     infoLabel->setObjectName("infoLabel");
     infoLabel->setWordWrap(true);
 
     uiLayout->addLayout(themeLayout);
-    uiLayout->addLayout(fontLayout);
     uiLayout->addSpacing(10);
     uiLayout->addWidget(infoLabel);
 
@@ -74,92 +61,39 @@ void UISettingsWidget::setupUI()
 
 void UISettingsWidget::setupStyles()
 {
-    setStyleSheet(R"(
-        QGroupBox#settingsGroup {
-            font-size: 14px;
-            font-weight: bold;
-            border: 2px solid #444444;
-            border-radius: 12px;
-            margin-top: 12px;
-            padding-top: 20px;
-            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                stop:0 rgba(255,255,255,0.03),
-                stop:1 rgba(255,255,255,0.01));
-        }
-        
-        QGroupBox#settingsGroup::title {
-            subcontrol-origin: margin;
-            left: 15px;
-            padding: 0 8px;
-            color: #FB7299;
-        }
-        
-        QLabel#settingsLabel {
-            color: #CCCCCC;
-            font-size: 13px;
-            font-weight: normal;
-        }
-        
-        QLabel#infoLabel {
-            color: #AAAAAA;
-            font-size: 12px;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.02);
-            border: 1px solid #333333;
-            border-radius: 6px;
-        }
-        
-        QComboBox#settingsCombo {
-            padding: 6px;
-            border: 2px solid #444444;
-            border-radius: 6px;
-            background-color: #252525;
-            color: #FFFFFF;
-            font-size: 12px;
-        }
-        
-        QComboBox#settingsCombo::drop-down {
-            border: none;
-            width: 25px;
-        }
-        
-        QComboBox#settingsCombo::down-arrow {
-            image: none;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid #CCCCCC;
-            margin-right: 8px;
-        }
-        
-        QComboBox#settingsCombo QAbstractItemView {
-            background-color: #2A2A2A;
-            color: #FFFFFF;
-            border: 2px solid #444444;
-            selection-background-color: #FB7299;
-        }
-        
-        QSpinBox#settingsSpin {
-            padding: 6px;
-            border: 2px solid #444444;
-            border-radius: 6px;
-            background-color: #252525;
-            color: #FFFFFF;
-            font-size: 12px;
-        }
-    )");
+}
+
+void UISettingsWidget::onThemeChanged(int index) {
+    ThemeManager::Theme theme = static_cast<ThemeManager::Theme>(
+        m_themeCombo->itemData(index).toInt()
+        );
+
+    if (ThemeManager::instance().loadTheme(theme)) {
+        qDebug() << "✅ 主题已切换：" << ThemeManager::instance().currentThemeName();
+    }
+    else {
+        QMessageBox::warning(this, "错误", "主题切换失败！");
+    }
 }
 
 void UISettingsWidget::loadSettings()
 {
-    AppConfig& config = AppConfig::instance();
+    QString theme = AppConfig::instance().getTheme();
+    qDebug() << "🔍 当前配置的主题：" << theme;
 
-    QString theme = config.getTheme();
-    int themeIndex = m_themeCombo->findData(theme);
-    if (themeIndex >= 0) {
-        m_themeCombo->setCurrentIndex(themeIndex);
+    ThemeManager::Theme themeEnum = (theme == "light") ?
+        ThemeManager::Theme::Light : ThemeManager::Theme::Dark;
+
+    qDebug() << "🔍 转换后的枚举值：" << static_cast<int>(themeEnum);
+
+    int index = m_themeCombo->findData(static_cast<int>(themeEnum));
+    qDebug() << "🔍 下拉框选中索引：" << index;
+
+    if (index >= 0) {
+        m_themeCombo->blockSignals(true);
+        m_themeCombo->setCurrentIndex(index);
+        m_themeCombo->blockSignals(false);
     }
-
-    m_fontSizeSpin->setValue(config.getFontSize());
 }
 
 bool UISettingsWidget::validate()
@@ -169,8 +103,9 @@ bool UISettingsWidget::validate()
 
 void UISettingsWidget::applySettings()
 {
-    AppConfig& config = AppConfig::instance();
+    int themeInt = m_themeCombo->currentData().toInt();
+    ThemeManager::Theme theme = static_cast<ThemeManager::Theme>(themeInt);
 
-    config.setTheme(m_themeCombo->currentData().toString());
-    config.setFontSize(m_fontSizeSpin->value());
+    QString themeName = (theme == ThemeManager::Theme::Dark) ? "dark" : "light";
+    AppConfig::instance().setTheme(themeName);
 }
