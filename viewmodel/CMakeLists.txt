@@ -1,7 +1,22 @@
-file(GLOB_RECURSE VIEWMODEL_SOURCES "*.cpp" "*.h")
+cmake_minimum_required(VERSION 3.16)
 
-add_library(viewmodel STATIC ${VIEWMODEL_SOURCES})
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-target_link_libraries(viewmodel PUBLIC
-    Qt6::Core
+add_library(viewmodel STATIC
+    DownloadViewModel.cpp
+    LibraryViewModel.cpp
 )
+
+target_link_libraries(viewmodel PUBLIC 
+    Qt6::Core
+    Qt6::Widgets
+    common
+    service
+)
+
+target_include_directories(viewmodel PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_compile_features(viewmodel PUBLIC cxx_std_20)

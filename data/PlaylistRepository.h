@@ -30,6 +30,38 @@ public:
     int count();
     int getSongCountInPlaylist(const QString& playlistId);
 
+    // ========== 🆕 新增：批量操作 ==========
+    /**
+     * @brief 批量添加歌曲到歌单
+     * @param playlistId 歌单ID
+     * @param songIds 歌曲ID列表
+     * @return 成功添加的数量
+     */
+    int addSongsToPlaylist(const QString& playlistId, const QStringList& songIds);
+
+    /**
+     * @brief 检查歌曲是否在歌单中
+     * @param playlistId 歌单ID
+     * @param songId 歌曲ID
+     * @return 是否存在
+     */
+    bool isSongInPlaylist(const QString& playlistId, const QString& songId);
+
+    /**
+     * @brief 从歌单中移除多首歌曲
+     * @param playlistId 歌单ID
+     * @param songIds 歌曲ID列表
+     * @return 成功移除的数量
+     */
+    int removeSongsFromPlaylist(const QString& playlistId, const QStringList& songIds);
+
+    /**
+     * @brief 清空歌单（移除所有歌曲，但不删除歌单本身）
+     * @param playlistId 歌单ID
+     * @return 是否成功
+     */
+    bool clearPlaylist(const QString& playlistId);
+
 private:
     Playlist playlistFromQuery(const class QSqlQuery& query);
 };

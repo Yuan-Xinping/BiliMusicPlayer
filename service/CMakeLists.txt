@@ -18,7 +18,12 @@ add_library(service STATIC
     "PlaybackHistory.h" 
     "PlaybackHistory.cpp" 
     "PlaybackQueue.h" 
-    "PlaybackQueue.cpp")
+    "PlaybackQueue.cpp" 
+
+    # 音乐库服务
+    "LibraryService.h"
+    "LibraryService.cpp"
+)
 
 target_link_libraries(service PUBLIC 
     Qt6::Core 

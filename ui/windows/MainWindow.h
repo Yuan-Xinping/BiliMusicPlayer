@@ -14,6 +14,7 @@ class PlaybackBar;
 class DownloadManagerPage;
 class SettingsPage;
 class BiliMusicPlayerApp;
+class DownloadViewModel;
 
 class MainWindow : public QMainWindow
 {
@@ -51,6 +52,9 @@ private:
     PlaybackBar* m_playbackBar;
     DownloadManagerPage* m_downloadManagerPage;
     SettingsPage* m_settingsPage;
+
+    // ViewModel 实例
+    DownloadViewModel* m_downloadViewModel = nullptr;
 
     // 应用实例
     BiliMusicPlayerApp* m_app = nullptr;

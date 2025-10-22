@@ -163,3 +163,112 @@ Playlist PlaylistRepository::playlistFromQuery(const QSqlQuery& query) {
 
     return playlist;
 }
+
+int PlaylistRepository::addSongsToPlaylist(const QString& playlistId, const QStringList& songIds) {
+    if (playlistId.isEmpty() || songIds.isEmpty()) {
+        qWarning() << "PlaylistRepository: 批量添加失败 - 参数为空";
+        return 0;
+    }
+
+    int successCount = 0;
+
+    // 使用事务
+    QSqlDatabase db = QSqlDatabase::database();
+    db.transaction();
+
+    QSqlQuery query;
+    query.prepare("INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id) VALUES (?, ?)");
+
+    for (const QString& songId : songIds) {
+        query.addBindValue(playlistId);
+        query.addBindValue(songId);
+
+        if (query.exec()) {
+            // 检查是否真的插入了新记录
+            if (query.numRowsAffected() > 0) {
+                successCount++;
+            }
+        }
+        else {
+            qWarning() << "PlaylistRepository: 添加歌曲失败, songId:" << songId
+                << ", 错误:" << query.lastError().text();
+        }
+    }
+
+    if (successCount > 0) {
+        db.commit();
+        qDebug() << "✅ PlaylistRepository: 成功添加" << successCount << "首歌曲到歌单";
+    }
+    else {
+        db.rollback();
+        qWarning() << "⚠️ PlaylistRepository: 批量添加失败，已回滚";
+    }
+
+    return successCount;
+}
+
+bool PlaylistRepository::isSongInPlaylist(const QString& playlistId, const QString& songId) {
+    if (playlistId.isEmpty() || songId.isEmpty()) {
+        return false;
+    }
+
+    QSqlQuery query;
+    query.prepare("SELECT 1 FROM playlist_songs WHERE playlist_id = ? AND song_id = ? LIMIT 1");
+    query.addBindValue(playlistId);
+    query.addBindValue(songId);
+
+    if (query.exec() && query.next()) {
+        return true;
+    }
+
+    return false;
+}
+
+int PlaylistRepository::removeSongsFromPlaylist(const QString& playlistId, const QStringList& songIds) {
+    if (playlistId.isEmpty() || songIds.isEmpty()) {
+        qWarning() << "PlaylistRepository: 批量移除失败 - 参数为空";
+        return 0;
+    }
+
+    int successCount = 0;
+
+    QSqlDatabase db = QSqlDatabase::database();
+    db.transaction();
+
+    for (const QString& songId : songIds) {
+        if (removeSongFromPlaylist(playlistId, songId)) {
+            successCount++;
+        }
+    }
+
+    if (successCount > 0) {
+        db.commit();
+        qDebug() << "✅ PlaylistRepository: 成功从歌单移除" << successCount << "首歌曲";
+    }
+    else {
+        db.rollback();
+    }
+
+    return successCount;
+}
+
+bool PlaylistRepository::clearPlaylist(const QString& playlistId) {
+    if (playlistId.isEmpty()) {
+        qWarning() << "PlaylistRepository: 清空歌单失败 - ID 为空";
+        return false;
+    }
+
+    QSqlQuery query;
+    query.prepare("DELETE FROM playlist_songs WHERE playlist_id = ?");
+    query.addBindValue(playlistId);
+
+    if (!query.exec()) {
+        qWarning() << "PlaylistRepository: 清空歌单失败:" << query.lastError().text();
+        return false;
+    }
+
+    int removedCount = query.numRowsAffected();
+    qDebug() << "✅ PlaylistRepository: 已清空歌单，移除" << removedCount << "首歌曲";
+
+    return true;
+}
