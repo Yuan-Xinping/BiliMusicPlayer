@@ -1,4 +1,4 @@
- # 📖 BiliMusicPlayer - README
+# 📖 BiliMusicPlayer - README
 
 <div align="center">
 
@@ -369,10 +369,6 @@ private:
 - ⚡ 字体大小调整
 - ⚡ 开机自启动
 
-#### 5. **高级设置**
-- ⚡ 代理设置（HTTP/SOCKS5）
-- ⚡ 日志级别配置
-- ⚡ 缓存清理
 
 ---
 
@@ -409,12 +405,6 @@ private:
 - 类名使用 **大驼峰** (例如：`DownloadService`)
 - 成员变量使用 `m_` 前缀 (例如：`m_downloadPath`)
 - 私有成员使用 **小驼峰** (例如：`downloadPath`)
-
----
-
-## 📄 许可证
-
-本项目基于 **MIT License** 开源。
 
 ---
 

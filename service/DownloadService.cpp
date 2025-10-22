@@ -48,12 +48,28 @@ DownloadService::~DownloadService() {
 }
 
 void DownloadService::addDownloadTask(const QString& identifier, const QString& preset) {
-    DownloadOptions options = DownloadOptions::createPreset(preset);
+    DownloadOptions options;
+
+    if (preset.isEmpty() || preset == "high_quality_mp3") {
+        QString configPreset = AppConfig::instance().getDefaultQualityPreset();
+        options = DownloadOptions::createPreset(configPreset);
+
+        options.audioFormat = AppConfig::instance().getDefaultAudioFormat();
+
+        qDebug() << "DownloadService: 使用 AppConfig 配置";
+        qDebug() << "  - 预设:" << configPreset;
+        qDebug() << "  - 格式:" << static_cast<int>(options.audioFormat);
+    }
+    else {
+        options = DownloadOptions::createPreset(preset);
+
+        qDebug() << "DownloadService: 使用指定预设:" << preset;
+    }
+
     addDownloadTask(identifier, options);
 }
 
 void DownloadService::addDownloadTask(const QString& identifier, const DownloadOptions& options) {
-    // 检查是否已存在
     Song existingSong = m_songRepository->findById(identifier);
     if (!existingSong.getId().isEmpty()) {
         qDebug() << "DownloadService: 歌曲已存在，跳过:" << identifier;
@@ -309,4 +325,27 @@ void DownloadService::failCurrentTask(const QString& error) {
 
     // 处理下一个任务
     m_processTimer->start(500); // 延迟500ms处理下一个任务
+}
+
+// 配置刷新
+void DownloadService::refreshConfig()
+{
+    QString oldPath = m_downloadDir;
+    m_downloadDir = AppConfig::instance().getDownloadPath();
+
+    QDir().mkpath(m_downloadDir);
+
+    QQueue<DownloadTask> updatedQueue;
+    while (!m_taskQueue.isEmpty()) {
+        DownloadTask task = m_taskQueue.dequeue();
+        task.outputDir = m_downloadDir;
+        updatedQueue.enqueue(task);
+    }
+    m_taskQueue = updatedQueue;
+
+    qDebug() << "✅ DownloadService: 配置已刷新";
+    qDebug() << "  - 下载路径:" << oldPath << "→" << m_downloadDir;
+    qDebug() << "  - 待处理任务数:" << m_taskQueue.size();
+    qDebug() << "  - 默认音质:" << AppConfig::instance().getDefaultQualityPreset();
+    qDebug() << "  - 默认格式:" << static_cast<int>(AppConfig::instance().getDefaultAudioFormat());
 }

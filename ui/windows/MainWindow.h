@@ -1,15 +1,9 @@
 #pragma once
+
 #include <QMainWindow>
-#include <QStackedWidget>
-#include <QWidget>
-#include <QPushButton>
-#include <QLabel>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QTimer>
-#include <QGraphicsDropShadowEffect>
 #include <QMouseEvent>
-#include <QPoint>
+#include <QPushButton>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -17,13 +11,19 @@ QT_END_NAMESPACE
 
 class PlaybackBar;
 class DownloadManagerPage;
+class SettingsPage;
+class BiliMusicPlayerApp;  // 🔥 前置声明
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow
+{
     Q_OBJECT
 
 public:
     MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
+
+    // 🔥 新增：设置应用实例引用
+    void setApp(BiliMusicPlayerApp* app);
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
@@ -40,27 +40,22 @@ private:
     void switchToPage(int pageIndex);
     QString getEmbeddedStyle() const;
 
-private:
     Ui::MainWindow* ui;
 
-    // 导航按钮
-    QPushButton* m_musicLibraryBtn = nullptr;
-    QPushButton* m_downloadManagerBtn = nullptr;
-    QPushButton* m_settingsBtn = nullptr;
+    // UI 组件
+    QPushButton* m_musicLibraryBtn;
+    QPushButton* m_downloadManagerBtn;
+    QPushButton* m_settingsBtn;
+    PlaybackBar* m_playbackBar;
+    DownloadManagerPage* m_downloadManagerPage;
+    SettingsPage* m_settingsPage;
 
-    // 播放控制栏
-    PlaybackBar* m_playbackBar = nullptr;
+    // 应用实例
+    BiliMusicPlayerApp* m_app = nullptr;
 
-    // 内容页面
-    DownloadManagerPage* m_downloadManagerPage = nullptr;
-
-    // 测试定时器
-    QTimer* m_progressTimer = nullptr;
-    int m_testPosition = 0;
-
-    // 当前页面索引
-    int m_currentPageIndex = 0;
-
-    // 拖拽相关
+    // 其他成员
+    int m_currentPageIndex;
     QPoint m_dragStartPosition;
+    QTimer* m_progressTimer;
+    int m_testPosition;
 };

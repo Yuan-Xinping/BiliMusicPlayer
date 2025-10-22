@@ -21,7 +21,7 @@ public:
     };
 
     struct DownloadTask {
-        QString identifier;  // BV号或URL
+        QString identifier;
         QString outputDir;
         DownloadOptions options;
         DownloadStatus status = DownloadStatus::Idle;
@@ -54,6 +54,10 @@ public:
     // 获取当前任务
     DownloadTask getCurrentTask() const;
     QList<DownloadTask> getAllTasks() const;
+
+public slots:
+    // 配置刷新方法
+    void refreshConfig();
 
 signals:
     void taskAdded(const DownloadTask& task);

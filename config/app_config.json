@@ -1,0 +1,9 @@
+{
+  "download_path": "C:/Users/YourName/BiliMusicPlayer_Downloads",
+  "database_path": "C:/Users/YourName/BiliMusicPlayer/bili_music_player.db",
+  "yt_dlp_path": "C:/Program Files/yt-dlp/yt-dlp.exe",
+  "ffmpeg_path": "C:/Program Files/ffmpeg/bin/ffmpeg.exe",
+  "default_quality_preset": "lossless_flac",
+  "default_audio_format": 2, // (0=MP3, 1=M4A, 2=FLAC, 3=OPUS, 4=WAV)
+  "max_concurrent_downloads": 3
+}

@@ -8,9 +8,10 @@ class DatabaseManager : public QObject {
 public:
     static DatabaseManager& instance();
 
-    bool initialize();
+    bool initialize(const QString& dbPath);
     QSqlDatabase getConnection();
     bool isInitialized() const { return m_initialized; }
+    QString getDatabasePath() const { return m_databasePath; }
 
 private:
     explicit DatabaseManager(QObject* parent = nullptr);
@@ -19,10 +20,7 @@ private:
     DatabaseManager& operator=(const DatabaseManager&) = delete;
 
     bool createTablesIfNotExist();
-    QString getDatabasePath() const;
-    QString getAppDataDirectory() const;
 
     bool m_initialized = false;
     QString m_databasePath;
-    static const QString DB_FILE_NAME;
 };

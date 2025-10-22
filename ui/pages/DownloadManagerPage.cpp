@@ -20,13 +20,21 @@
 #include <QListWidget>
 #include <QTableWidget>
 
-DownloadManagerPage::DownloadManagerPage(QWidget* parent)
+DownloadManagerPage::DownloadManagerPage(DownloadService* downloadService, QWidget* parent)
     : QWidget(parent)
-    , m_downloadService(new DownloadService(this))
+    , m_downloadService(downloadService)
 {
+    if (!m_downloadService) {
+        qCritical() << "❌ DownloadManagerPage: DownloadService 为空！";
+        return;
+    }
+
+    qDebug() << "🔧 DownloadManagerPage 构造函数开始...";
+
     setupUI();
     setupConnections();
     setupStyles();
+    loadDefaultSettings();
 
     QString downloadPath = AppConfig::instance().getDownloadPath();
     qDebug() << "====================================";
@@ -39,6 +47,8 @@ DownloadManagerPage::DownloadManagerPage(QWidget* parent)
 
 void DownloadManagerPage::setupUI()
 {
+    qDebug() << "🔧 DownloadManagerPage::setupUI() 开始...";
+
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(20);
@@ -64,6 +74,8 @@ void DownloadManagerPage::setupUI()
     urlLayout->addWidget(urlLabel);
     urlLayout->addWidget(m_urlInput);
 
+    qDebug() << "  - URL 输入框已创建";
+
     // 音质选择行
     QHBoxLayout* qualityLayout = new QHBoxLayout();
     QLabel* qualityLabel = new QLabel("音质选择:");
@@ -71,11 +83,18 @@ void DownloadManagerPage::setupUI()
     qualityLabel->setObjectName("inputLabel"); 
     qualityLabel->setStyleSheet("color: #CCCCCC; font-size: 13px;");
 
+    qDebug() << "  - 正在创建音质选择器...";
     m_qualityCombo = new QComboBox();
-    m_qualityCombo->addItem("🎵 高品质 MP3 (320kbps)", "high_quality_mp3");
-    m_qualityCombo->addItem("🎶 标准 MP3 (192kbps)", "standard_mp3");
-    m_qualityCombo->addItem("🎼 最佳音质 (原始格式)", "best_quality");
+
+    m_qualityCombo->addItem("🌟 最佳音质 (自动)", "best_quality");
+    m_qualityCombo->addItem("🎼 无损音质 WAV", "lossless_wav");
+    m_qualityCombo->addItem("🎵 无损音质 FLAC", "lossless_flac");
+    m_qualityCombo->addItem("🎧 高品质 MP3 (320kbps)", "high_quality_mp3");
+    m_qualityCombo->addItem("🎶 标准 MP3 (192kbps)", "medium_quality_mp3");
+    m_qualityCombo->addItem("🎹 小文件 OPUS", "small_size_opus");
+
     m_qualityCombo->setObjectName("qualityCombo");
+    qDebug() << "  - 音质选择器已创建，选项数量:" << m_qualityCombo->count();
 
     qualityLayout->addWidget(qualityLabel);
     qualityLayout->addWidget(m_qualityCombo);
@@ -90,6 +109,8 @@ void DownloadManagerPage::setupUI()
     m_batchDownloadBtn = new QPushButton("📋 批量下载");
     m_batchDownloadBtn->setObjectName("batchDownloadBtn");
     m_batchDownloadBtn->setFixedHeight(40);
+
+    qDebug() << "  - 按钮已创建";
 
     buttonLayout->addWidget(m_startBtn);
     buttonLayout->addWidget(m_batchDownloadBtn);
@@ -555,4 +576,55 @@ void DownloadManagerPage::moveTaskToHistory(const QString& identifier, bool succ
 DownloadTaskItem* DownloadManagerPage::findTaskItem(const QString& identifier) const
 {
     return m_taskItems.value(identifier, nullptr);
+}
+
+void DownloadManagerPage::loadDefaultSettings()
+{
+    if (!m_qualityCombo) {
+        qCritical() << "❌ loadDefaultSettings: m_qualityCombo 为空！";
+        return;
+    }
+
+    AppConfig& config = AppConfig::instance();
+
+    // 设置默认音质
+    QString defaultPreset = config.getDefaultQualityPreset();
+    int presetIndex = m_qualityCombo->findData(defaultPreset);
+    qDebug() << "📋 加载默认音质设置...";
+    qDebug() << "  - 配置中的默认音质:" << defaultPreset;
+    qDebug() << "  - 当前选择器选项数量:" << m_qualityCombo->count();
+    for (int i = 0; i < m_qualityCombo->count(); ++i) {
+        qDebug() << "    [" << i << "]"
+            << m_qualityCombo->itemData(i).toString()
+            << "-" << m_qualityCombo->itemText(i);
+    }
+    if (presetIndex >= 0) {
+        m_qualityCombo->blockSignals(true);
+        m_qualityCombo->setCurrentIndex(presetIndex);
+        m_qualityCombo->blockSignals(false);
+
+        qDebug() << "✅ 默认音质已设置为：" << m_qualityCombo->currentText()
+            << "(" << defaultPreset << ")";
+    }
+    else {
+        qWarning() << "⚠️ 未找到音质预设：" << defaultPreset;
+        qWarning() << "  - 可能的原因：设置页面的选项与下载管理页面不一致";
+        qWarning() << "  - 将使用默认选项：" << m_qualityCombo->itemText(0);
+    }
+
+    qDebug() << "✅ 下载管理页面已应用配置";
+}
+
+void DownloadManagerPage::onSettingsChanged()
+{
+    qDebug() << "🔄 下载管理页面收到配置变更信号";
+    loadDefaultSettings();
+
+    // 更新状态栏显示的下载路径
+    QString downloadPath = AppConfig::instance().getDownloadPath();
+    m_statusLabel->setText(QString("💤 等待任务 | 📁 %1").arg(downloadPath));
+
+    qDebug() << "✅ 下载管理页面已刷新配置";
+    qDebug() << "  - 当前选中音质：" << m_qualityCombo->currentText();
+    qDebug() << "  - 下载路径：" << downloadPath;
 }

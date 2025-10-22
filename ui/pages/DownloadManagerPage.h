@@ -20,13 +20,14 @@ class DownloadManagerPage : public QWidget {
     Q_OBJECT
 
 public:
-    explicit DownloadManagerPage(QWidget* parent = nullptr);
+    explicit DownloadManagerPage(DownloadService* downloadService, QWidget* parent = nullptr);
+
+public slots:
+    void onSettingsChanged();
 
 private slots:
     void onStartDownloadClicked();
-    // 🔧 已删除暂停/取消槽函数
 
-    // DownloadService 信号处理
     void onTaskAdded(const DownloadService::DownloadTask& task);
     void onTaskStarted(const DownloadService::DownloadTask& task);
     void onTaskProgress(const DownloadService::DownloadTask& task,
@@ -42,6 +43,7 @@ private:
     void setupConnections();
     void setupStyles();
     bool validateInput() const;
+    void loadDefaultSettings();
 
     void addTaskToQueue(const DownloadService::DownloadTask& task);
     void moveTaskToHistory(const QString& identifier, bool success);
@@ -59,9 +61,7 @@ private:
 
     QLabel* m_statusLabel = nullptr;
 
-    // 服务
     DownloadService* m_downloadService = nullptr;
 
-    // 任务管理
     QMap<QString, DownloadTaskItem*> m_taskItems;
 };

@@ -3,12 +3,15 @@
 #include "../pages/DownloadManagerPage.h"
 #include "../components/PlaybackBar.h"
 #include "../../common/entities/Song.h"
+#include "../../app/BiliMusicPlayerApp.h"
+#include "../../service/DownloadService.h"
 #include <QApplication>
 #include <QScreen>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
 #include <QGraphicsDropShadowEffect>
+#include "../pages/settings/SettingsPage.h"
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -41,7 +44,6 @@ MainWindow::MainWindow(QWidget* parent)
     setupPlaybackBar();
     setupStyles();
     addShadowEffect();
-    setupContentPages();
 
     // 默认显示音乐库页面
     switchToPage(0);
@@ -153,7 +155,6 @@ void MainWindow::setupStyles()
     }
 }
 
-// 内嵌样式
 QString MainWindow::getEmbeddedStyle() const
 {
     return R"CSS(
@@ -683,7 +684,17 @@ void MainWindow::setupContentPages()
 {
     qDebug() << "开始替换下载管理页面...";
 
-    m_downloadManagerPage = new DownloadManagerPage(this);
+    // 创建下载管理页面
+    if (!m_app) {
+        qCritical() << "❌ 无法创建下载管理页面：BiliMusicPlayerApp 未设置";
+        return;
+    }
+    DownloadService* downloadService = m_app->getDownloadService();
+    if (!downloadService) {
+        qCritical() << "❌ 无法创建下载管理页面：DownloadService 为空";
+        return;
+    }
+    m_downloadManagerPage = new DownloadManagerPage(downloadService, this);
 
     QWidget* oldDownloadPage = ui->contentStackedWidget->widget(1);
     ui->contentStackedWidget->removeWidget(oldDownloadPage);
@@ -695,7 +706,50 @@ void MainWindow::setupContentPages()
 
     ui->contentStackedWidget->insertWidget(1, m_downloadManagerPage);
 
-    qDebug() << "下载管理页面已集成完成";
-    qDebug() << "内容页面总数:" << ui->contentStackedWidget->count();
+    // 创建设置页面
+    m_settingsPage = new SettingsPage(this);
+    QWidget* oldSettingsPage = ui->contentStackedWidget->widget(2);
+    ui->contentStackedWidget->removeWidget(oldSettingsPage);
+    if (oldSettingsPage) {
+        oldSettingsPage->deleteLater();
+    }
+    ui->contentStackedWidget->insertWidget(2, m_settingsPage);
 
+    connect(m_settingsPage, &SettingsPage::settingsChanged,
+        m_downloadManagerPage, &DownloadManagerPage::onSettingsChanged);
+
+    qDebug() << "✅ 信号连接已建立：SettingsPage → DownloadManagerPage";
+
+    qDebug() << "所有页面已集成完成";
+    qDebug() << "内容页面总数:" << ui->contentStackedWidget->count();
 }
+
+void MainWindow::setApp(BiliMusicPlayerApp* app)
+{
+    m_app = app;
+    qDebug() << "✅ MainWindow: 应用实例已设置";
+
+    setupContentPages();
+
+    if (m_app && m_settingsPage) {
+        DownloadService* downloadService = m_app->getDownloadService();
+        if (downloadService) {
+            connect(m_settingsPage, &SettingsPage::settingsChanged,
+                downloadService, &DownloadService::refreshConfig);
+
+            qDebug() << "✅ 信号连接已建立：SettingsPage → DownloadService";
+        }
+        else {
+            qWarning() << "⚠️ 无法连接信号：DownloadService 为空";
+        }
+    }
+    else {
+        if (!m_app) {
+            qWarning() << "⚠️ 无法连接信号：BiliMusicPlayerApp 为空";
+        }
+        if (!m_settingsPage) {
+            qWarning() << "⚠️ 无法连接信号：SettingsPage 未创建";
+        }
+    }
+}
+

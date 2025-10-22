@@ -135,35 +135,36 @@ DownloadOptions DownloadOptions::createPreset(const QString& presetName) {
         options.audioFormat = AudioFormat::MP3;
         options.embedThumbnail = true;
         options.writeInfoJson = true;
-
     }
     else if (presetName == "medium_quality_mp3") {
         options.audioQuality = AudioQuality::High;
         options.audioFormat = AudioFormat::MP3;
         options.embedThumbnail = true;
         options.writeInfoJson = true;
-
-    }
-    else if (presetName == "low_quality_mp3") {
-        options.audioQuality = AudioQuality::Low;
-        options.audioFormat = AudioFormat::MP3;
-        options.embedThumbnail = false;
-        options.writeInfoJson = true;
-
     }
     else if (presetName == "lossless_flac") {
         options.audioQuality = AudioQuality::Best;
         options.audioFormat = AudioFormat::FLAC;
         options.embedThumbnail = true;
         options.writeInfoJson = true;
-
     }
     else if (presetName == "small_size_opus") {
         options.audioQuality = AudioQuality::Medium;
         options.audioFormat = AudioFormat::OPUS;
         options.embedThumbnail = true;
         options.writeInfoJson = true;
-
+    }
+    else if (presetName == "lossless_wav") {
+        options.audioQuality = AudioQuality::Best;
+        options.audioFormat = AudioFormat::WAV;
+        options.embedThumbnail = false;
+        options.writeInfoJson = true;
+    }
+    else if (presetName == "best_quality") {
+        options.audioQuality = AudioQuality::Best;
+        options.audioFormat = AudioFormat::FLAC;
+        options.embedThumbnail = true;
+        options.writeInfoJson = true;
     }
     else if (presetName == "video_720p") {
         options.extractAudioOnly = false;
@@ -171,7 +172,6 @@ DownloadOptions DownloadOptions::createPreset(const QString& presetName) {
         options.videoFormat = "mp4";
         options.embedThumbnail = false;
         options.writeInfoJson = true;
-
     }
     else if (presetName == "video_1080p") {
         options.extractAudioOnly = false;
@@ -188,9 +188,10 @@ QStringList DownloadOptions::getAvailablePresets() {
     return {
         "high_quality_mp3",
         "medium_quality_mp3",
-        "low_quality_mp3",
         "lossless_flac",
         "small_size_opus",
+        "lossless_wav",
+        "best_quality",
         "video_720p",
         "video_1080p"
     };
