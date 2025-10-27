@@ -177,12 +177,13 @@ void DownloadSettingsWidget::loadSettings()
         m_defaultQualityCombo->setCurrentIndex(qualityIndex);
     }
 
+    onQualityPresetChanged(m_defaultQualityCombo->currentIndex());
+
     m_maxConcurrentDownloadsSpin->setValue(config.getMaxConcurrentDownloads());
 
     qDebug() << "✅ 设置已加载：音质=" << qualityPreset
         << "，格式=" << m_defaultFormatCombo->currentText();
 }
-
 bool DownloadSettingsWidget::validate()
 {
     if (m_downloadPathInput->text().isEmpty()) {
@@ -198,17 +199,15 @@ void DownloadSettingsWidget::applySettings()
     AppConfig& config = AppConfig::instance();
 
     config.setDownloadPath(m_downloadPathInput->text());
-    config.setDefaultQualityPreset(m_defaultQualityCombo->currentData().toString());
 
-    QString preset = m_defaultQualityCombo->currentData().toString();
-    if (m_qualityToFormatMap.contains(preset)) {
-        config.setDefaultAudioFormat(m_qualityToFormatMap[preset]);
+    const QString preset = m_defaultQualityCombo->currentData().toString();
+    config.setDefaultQualityPreset(preset);
 
-        qDebug() << "✅ 设置已保存：音质=" << preset
-            << "，格式=" << static_cast<int>(m_qualityToFormatMap[preset]);
-    }
-
+    m_maxConcurrentDownloadsSpin->setValue(m_maxConcurrentDownloadsSpin->value());
     config.setMaxConcurrentDownloads(m_maxConcurrentDownloadsSpin->value());
+
+    qDebug() << "设置已保存：音质=" << preset
+        << "，格式(映射)=" << static_cast<int>(config.getDefaultAudioFormat());
 }
 
 void DownloadSettingsWidget::onBrowseDownloadPathClicked()

@@ -1,3 +1,4 @@
+// AppConfig.h
 #pragma once
 #include <QObject>
 #include <QString>
@@ -5,7 +6,7 @@
 #include "entities/Song.h"
 #include "../infra/DownloadConfig.h"
 
-class AppConfig : public QObject{
+class AppConfig : public QObject {
     Q_OBJECT
 
 public:
@@ -31,7 +32,7 @@ public:
     void setDownloadPath(const QString& path);
     void setYtDlpPath(const QString& path);
     void setFfmpegPath(const QString& path);
-    void setDefaultQualityPreset(const QString& preset);
+    void setDefaultQualityPreset(const QString& preset); 
     void setDefaultAudioFormat(AudioFormat format);
     void setMaxConcurrentDownloads(int count);
     void setDatabasePath(const QString& path);
@@ -40,13 +41,13 @@ public:
     void setProxyEnabled(bool enabled);
     void setProxyUrl(const QString& url);
 
-	bool isValidTheme(const QString& theme) const;
-	static QStringList availableThemes();
+    bool isValidTheme(const QString& theme) const;
+    static QStringList availableThemes();
 
     QString getConfigFilePath() const;
 
 signals:
-	void themeChanged(const QString& theme);
+    void themeChanged(const QString& theme);
 
 private:
     AppConfig();
@@ -61,6 +62,7 @@ private:
     void ensureDatabaseDirectoryExists();
 
     static QStringList s_validThemes;
+    static AudioFormat formatForPreset(const QString& preset); // 映射方法
 
     // 下载设置
     QString m_downloadPath;

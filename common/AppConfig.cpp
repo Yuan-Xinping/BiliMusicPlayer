@@ -1,3 +1,4 @@
+// AppConfig.cpp
 #include "AppConfig.h"
 #include <QFile>
 #include <QJsonDocument>
@@ -9,12 +10,26 @@
 
 QStringList AppConfig::s_validThemes = { "dark", "light" };
 
+static inline bool presetEq(const QString& a, const char* b) {
+    return a.compare(QLatin1String(b), Qt::CaseInsensitive) == 0;
+}
+
+AudioFormat AppConfig::formatForPreset(const QString& preset) {
+    if (presetEq(preset, "lossless_wav"))       return AudioFormat::WAV;
+    if (presetEq(preset, "lossless_flac"))      return AudioFormat::FLAC;
+    if (presetEq(preset, "small_size_opus"))    return AudioFormat::OPUS;
+    if (presetEq(preset, "high_quality_mp3"))   return AudioFormat::MP3;
+    if (presetEq(preset, "medium_quality_mp3")) return AudioFormat::MP3;
+    if (presetEq(preset, "best_quality"))       return AudioFormat::FLAC;
+    return AudioFormat::MP3; // 兜底
+}
+
 AppConfig& AppConfig::instance() {
     static AppConfig instance;
     return instance;
 }
 
-AppConfig::AppConfig() : QObject(nullptr){
+AppConfig::AppConfig() : QObject(nullptr) {
     setDefaultValues();
 }
 
@@ -146,7 +161,7 @@ void AppConfig::setDefaultValues() {
 
     // 下载设置
     m_defaultQualityPreset = "high_quality_mp3";
-    m_defaultAudioFormat = AudioFormat::MP3;
+    m_defaultAudioFormat = formatForPreset(m_defaultQualityPreset); // 由预设推导
     m_maxConcurrentDownloads = 3;
 
     // 数据库路径
@@ -208,8 +223,20 @@ void AppConfig::loadFromJson(const QJsonObject& json) {
         m_defaultQualityPreset = json["defaultQualityPreset"].toString();
     }
 
+    // —— 关键：用预设推导应有的格式，并在存在不一致时修正 —— //
+    const AudioFormat expected = formatForPreset(m_defaultQualityPreset);
     if (json.contains("defaultAudioFormat")) {
         m_defaultAudioFormat = static_cast<AudioFormat>(json["defaultAudioFormat"].toInt());
+        if (m_defaultAudioFormat != expected) {
+            qWarning() << "AppConfig: format mismatch with preset, fixing. preset="
+                << m_defaultQualityPreset
+                << "fileFormat=" << static_cast<int>(m_defaultAudioFormat)
+                << "expected=" << static_cast<int>(expected);
+            m_defaultAudioFormat = expected;
+        }
+    }
+    else {
+        m_defaultAudioFormat = expected;
     }
 
     if (json.contains("maxConcurrentDownloads")) {
@@ -265,6 +292,7 @@ bool AppConfig::isValidTheme(const QString& theme) const {
 QStringList AppConfig::availableThemes() {
     return s_validThemes;
 }
+
 // Getters
 QString AppConfig::getDownloadPath() const { return m_downloadPath; }
 QString AppConfig::getYtDlpPath() const { return m_ytDlpPath; }
@@ -282,7 +310,13 @@ QString AppConfig::getProxyUrl() const { return m_proxyUrl; }
 void AppConfig::setDownloadPath(const QString& path) { m_downloadPath = path; }
 void AppConfig::setYtDlpPath(const QString& path) { m_ytDlpPath = path; }
 void AppConfig::setFfmpegPath(const QString& path) { m_ffmpegPath = path; }
-void AppConfig::setDefaultQualityPreset(const QString& preset) { m_defaultQualityPreset = preset; }
+void AppConfig::setDefaultQualityPreset(const QString& preset) {
+    if (m_defaultQualityPreset == preset) return;
+    m_defaultQualityPreset = preset;
+    m_defaultAudioFormat = formatForPreset(preset); 
+    qDebug() << "AppConfig: preset ->" << preset
+        << ", format ->" << static_cast<int>(m_defaultAudioFormat);
+}
 void AppConfig::setDefaultAudioFormat(AudioFormat format) { m_defaultAudioFormat = format; }
 void AppConfig::setMaxConcurrentDownloads(int count) { m_maxConcurrentDownloads = count; }
 void AppConfig::setDatabasePath(const QString& path) { m_databasePath = path; }
@@ -290,7 +324,7 @@ void AppConfig::setFontSize(int size) { m_fontSize = size; }
 void AppConfig::setProxyEnabled(bool enabled) { m_proxyEnabled = enabled; }
 void AppConfig::setProxyUrl(const QString& url) { m_proxyUrl = url; }
 void AppConfig::setTheme(const QString& theme) {
-    if (m_theme == theme) return; 
+    if (m_theme == theme) return;
 
     if (isValidTheme(theme)) {
         m_theme = theme;

@@ -7,6 +7,8 @@
 #include <QFileDialog>
 #include <QProcess>
 #include <QDebug>
+#include <QLineEdit>
+#include <QPushButton>
 
 ToolsSettingsWidget::ToolsSettingsWidget(QWidget* parent)
     : QWidget(parent)
@@ -71,6 +73,10 @@ void ToolsSettingsWidget::setupUI()
     ffmpegLayout->addWidget(m_ffmpegPathInput);
     ffmpegLayout->addWidget(m_browseFfmpegBtn);
     ffmpegLayout->addWidget(m_ffmpegStatusLabel);
+    
+    m_testAllBtn = new QPushButton("🧪 全部检测");
+    m_testAllBtn->setObjectName("testAllBtn");
+    m_testAllBtn->setFixedWidth(100);
 
     // 说明文本
     QLabel* infoLabel = new QLabel(

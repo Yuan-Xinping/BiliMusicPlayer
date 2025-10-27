@@ -231,8 +231,8 @@ bool SettingsPage::resetConfigToDefaults()
         // 1️⃣ 下载设置 - 默认值
         QString defaultDownloadPath = userHome + "/BiliMusicPlayer_Downloads";
         config.setDownloadPath(defaultDownloadPath);
-        config.setDefaultQualityPreset("high");
-        config.setDefaultAudioFormat(AudioFormat::MP3);
+        config.setDefaultQualityPreset("medium_quality_mp3"); // 192kbps
+        // 不再单独设置格式，交由 AppConfig 根据预设自动同步
         config.setMaxConcurrentDownloads(3);
 
         // 2️⃣ 数据库设置 - 默认值

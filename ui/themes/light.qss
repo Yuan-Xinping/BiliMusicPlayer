@@ -767,6 +767,17 @@ QListWidget#downloadQueueList::item:selected {
     background-color: rgba(251, 114, 153, 0.15);
 }
 
+/* 下载历史表头（作用域） */
+QTableWidget#downloadHistoryTable QHeaderView::section {
+    background-color: #FAFAFA;
+    color: #FB7299;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 8px;
+    border: none;
+    border-bottom: 2px solid #FB7299;
+}
+
 QTableWidget#downloadHistoryTable {
     background-color: #FFFFFF;
     gridline-color: #E0E0E0;
@@ -787,16 +798,6 @@ QTableWidget#downloadHistoryTable::item:hover {
 QTableWidget#downloadHistoryTable::item:selected {
     background-color: rgba(251, 114, 153, 0.2);
     color: #212121;
-}
-
-QHeaderView::section {
-    background-color: #FAFAFA;
-    color: #FB7299;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 8px;
-    border: none;
-    border-bottom: 2px solid #FB7299;
 }
 
 /* ========================================
@@ -895,7 +896,120 @@ PlaybackBar QLabel#songTitle {
     padding: 0px;
 }
 
-PlaybackBar QLabel#artistName {
+/* ===== 🎵 Library — Modern Hierarchy ===== */
+
+/* 页面标题与副标题 */
+QLabel#libraryPageTitle {
+    color: #212121;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+QLabel#libraryPageSubtitle {
+    color: #9E9E9E;
+    font-size: 12px;
+    margin-top: -2px;
+}
+
+/* 侧边栏容器与分组标题 */
+QWidget#librarySidebarPanel {
+    background: #FFFFFF;
+    border: 2px solid #E0E0E0;
+    border-radius: 12px;
+}
+QLabel#librarySidebarTitle {
+    color: #9E9E9E;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    /* text-transform: uppercase;  — Qt 不支持，已去掉 */
+}
+
+/* 侧边栏列表（我的音乐 + 歌单） */
+QListWidget#librarySidebar {
+    background: transparent;
+    border: none;
+    padding: 4px 4px 10px 4px;
+}
+QListWidget#librarySidebar::item {
+    color: #424242;
+    padding: 10px 12px;
+    margin: 2px 6px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+QListWidget#librarySidebar::item:hover {
+    background: rgba(251,114,153,0.08);
+}
+QListWidget#librarySidebar::item:selected {
+    background: #FB7299;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+/* 顶部按钮条（新建/导入） — 保留单一版本 */
+QPushButton#createPlaylistBtn,
+QPushButton#importPlaylistBtn {
+    background-color: #FAFAFA;
+    border: 2px solid #E0E0E0;
+    border-radius: 10px;
+    color: #616161;
+    font-size: 13px;
+    padding: 8px 10px;
+}
+QPushButton#createPlaylistBtn:hover,
+QPushButton#importPlaylistBtn:hover {
+    background-color: #FFFFFF;
+    border-color: #FB7299;
+    color: #212121;
+}
+
+/* 搜索框与统计 */
+QLineEdit#librarySearchInput {
+    padding: 8px 12px;
+    border: 2px solid #E0E0E0;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #212121;
+    font-size: 13px;
+}
+QLineEdit#librarySearchInput:focus { border-color: #FB7299; }
+
+QLabel#librarySummaryLabel {
     color: #757575;
+    padding: 6px 10px;
+    background: #FAFAFA;
+    border: 1px solid #E0E0E0;
+    border-radius: 10px;
+    font-size: 12px;
+}
 
+/* 歌曲表格（更轻、更现代） */
+QTableWidget#librarySongTable {
+    background: #FFFFFF;
+    border: 2px solid #E0E0E0;
+    border-radius: 12px;
+    gridline-color: transparent;
+    outline: 0;
+}
+QTableWidget#librarySongTable::item {
+    padding: 10px 8px;
+}
+QTableWidget#librarySongTable::item:hover {
+    background: rgba(251,114,153,0.06);
+}
+QTableWidget#librarySongTable::item:selected {
+    background: rgba(251,114,153,0.18);
+    color: #212121;
+}
 
+/* 音乐库表头（作用域） */
+QTableWidget#librarySongTable QHeaderView::section {
+    background: #FFFFFF;
+    color: #757575;
+    font-size: 12px;
+    font-weight: 700;
+    border: none;
+    border-bottom: 2px solid #FB7299;
+    padding: 10px 8px;
+}

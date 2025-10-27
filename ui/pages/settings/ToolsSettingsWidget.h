@@ -33,5 +33,5 @@ private:
     QPushButton* m_browseFfmpegBtn = nullptr;
     QLabel* m_ffmpegStatusLabel = nullptr;
 
-	QPushButton* m_testAllBtn = nullptr;
+    QPushButton* m_testAllBtn = nullptr;
 };

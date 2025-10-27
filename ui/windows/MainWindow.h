@@ -13,6 +13,7 @@ QT_END_NAMESPACE
 class PlaybackBar;
 class DownloadManagerPage;
 class SettingsPage;
+class LibraryPage;
 class BiliMusicPlayerApp;
 class DownloadViewModel;
 
@@ -52,6 +53,7 @@ private:
     PlaybackBar* m_playbackBar;
     DownloadManagerPage* m_downloadManagerPage;
     SettingsPage* m_settingsPage;
+	LibraryPage* m_libraryPage=nullptr;
 
     // ViewModel 实例
     DownloadViewModel* m_downloadViewModel = nullptr;

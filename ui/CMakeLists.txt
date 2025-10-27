@@ -43,7 +43,8 @@ target_sources(ui PRIVATE
     # ========== 资源 ==========
     resources.qrc
     themes/themes.qrc
-)
+    pages/LibraryPage.h 
+    pages/LibraryPage.cpp)
 
 find_package(Qt6 REQUIRED COMPONENTS Network)
 

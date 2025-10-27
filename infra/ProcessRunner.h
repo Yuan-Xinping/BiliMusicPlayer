@@ -24,6 +24,7 @@ public:
 
     // 进程控制
     void terminate();
+    void kill();
     bool isRunning() const;
     int exitCode() const;
 

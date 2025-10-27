@@ -771,6 +771,17 @@ QListWidget#downloadQueueList::item:selected {
     background-color: rgba(251, 114, 153, 0.2);
 }
 
+/* 下载历史表头（作用域） */
+QTableWidget#downloadHistoryTable QHeaderView::section {
+    background-color: #2A2A2A;
+    color: #FB7299;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 8px;
+    border: none;
+    border-bottom: 2px solid #FB7299;
+}
+
 QTableWidget#downloadHistoryTable {
     background-color: #1A1A1A;
     gridline-color: #333333;
@@ -791,17 +802,6 @@ QTableWidget#downloadHistoryTable::item:hover {
 QTableWidget#downloadHistoryTable::item:selected {
     background-color: rgba(251, 114, 153, 0.25);
     color: #FFFFFF;
-}
-
-/* 🔥 修复：完整的表头样式 */
-QHeaderView::section {
-    background-color: #2A2A2A;
-    color: #FB7299;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 8px;
-    border: none;
-    border-bottom: 2px solid #FB7299;
 }
 
 /* ========================================
@@ -889,7 +889,7 @@ QScrollBar::sub-line:horizontal {
 }
 
 /* ========================================
-   🎵 PlaybackBar 组件样式
+   🎵 PlaybackBar 组件样式（局部作用域）
    ======================================== */
 
 PlaybackBar QLabel#songTitle {
@@ -1092,72 +1092,6 @@ PlaybackBar QSlider#volumeSlider::sub-page:horizontal {
 }
 
 /* ========================================
-   📥 DownloadTaskItem 组件样式
-   ======================================== */
-
-DownloadTaskItem {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(255,255,255,0.05),
-        stop:1 rgba(255,255,255,0.02));
-    border: 1px solid #333333;
-    border-radius: 10px;
-    padding: 5px;
-}
-
-DownloadTaskItem:hover {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(255,255,255,0.08),
-        stop:1 rgba(255,255,255,0.04));
-    border: 1px solid #444444;
-}
-
-DownloadTaskItem QLabel#taskTitleLabel {
-    color: #FFFFFF;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-DownloadTaskItem QLabel#taskStatusLabel {
-    color: #AAAAAA;
-    font-size: 12px;
-    font-weight: normal;
-}
-
-DownloadTaskItem QProgressBar#taskProgressBar {
-    border: 1px solid #444444;
-    border-radius: 4px;
-    background-color: #252525;
-    text-align: center;
-    color: #FFFFFF;
-    font-size: 11px;
-    font-weight: 500;
-}
-
-DownloadTaskItem QProgressBar#taskProgressBar::chunk {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #FB7299, stop:1 #FF8BB5);
-    border-radius: 3px;
-}
-
-DownloadTaskItem QPushButton#taskControlBtn {
-    background-color: #333333;
-    border: 1px solid #555555;
-    border-radius: 8px;
-    color: #CCCCCC;
-    font-size: 14px;
-}
-
-DownloadTaskItem QPushButton#taskControlBtn:hover {
-    background-color: #444444;
-    border-color: #FB7299;
-    color: #FFFFFF;
-}
-
-DownloadTaskItem QPushButton#taskControlBtn:pressed {
-    background-color: #555555;
-}
-
-/* ========================================
    🎹 内容区域样式
    ======================================== */
 
@@ -1200,4 +1134,125 @@ QListView::item:selected {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
         stop:0 rgba(251, 114, 153, 0.25),
         stop:1 rgba(251, 114, 153, 0.15));
+}
+
+/* ========================================
+   🎵 Library — Modern Hierarchy（深色）
+   ======================================== */
+
+/* 页面标题与副标题 */
+QLabel#libraryPageTitle {
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}
+QLabel#libraryPageSubtitle {
+    color: #B8B8B8;
+    font-size: 12px;
+    margin-top: -2px;
+}
+
+/* 侧边栏容器与分组标题 */
+QWidget#librarySidebarPanel {
+    background: #1E1E1E;
+    border: 2px solid #444444;
+    border-radius: 12px;
+}
+QLabel#librarySidebarTitle {
+    color: #8E8E8E;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    /* text-transform: uppercase;  — Qt 不支持，已去掉 */
+}
+
+/* 侧边栏列表（我的音乐 + 歌单） */
+QListWidget#librarySidebar {
+    background: transparent;
+    border: none;
+    padding: 4px 4px 10px 4px;
+}
+QListWidget#librarySidebar::item {
+    color: #DDDDDD;
+    padding: 10px 12px;
+    margin: 2px 6px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+QListWidget#librarySidebar::item:hover {
+    background: rgba(251,114,153,0.10);
+}
+QListWidget#librarySidebar::item:selected {
+    background: #FB7299;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+/* 顶部按钮条（新建/导入） */
+QPushButton#createPlaylistBtn,
+QPushButton#importPlaylistBtn {
+    background-color: #2A2A2A;
+    border: 2px solid #555555;
+    border-radius: 10px;
+    color: #CCCCCC;
+    font-size: 13px;
+    padding: 8px 10px;
+}
+QPushButton#createPlaylistBtn:hover,
+QPushButton#importPlaylistBtn:hover {
+    background-color: #3A3A3A;
+    border-color: #FB7299;
+    color: #FFFFFF;
+}
+
+/* 搜索框与统计 */
+QLineEdit#librarySearchInput {
+    padding: 8px 12px;
+    border: 2px solid #444444;
+    border-radius: 10px;
+    background: #252525;
+    color: #FFFFFF;
+    font-size: 13px;
+}
+QLineEdit#librarySearchInput:focus { border-color: #FB7299; }
+
+QLabel#librarySummaryLabel {
+    color: #BBBBBB;
+    padding: 6px 10px;
+    background: #2A2A2A;
+    border: 1px solid #444444;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+/* 歌曲表格（更轻、更现代） */
+QTableWidget#librarySongTable {
+    background: #1E1E1E;
+    border: 2px solid #444444;
+    border-radius: 12px;
+    gridline-color: transparent;
+    outline: 0;
+    color: #FFFFFF;
+}
+QTableWidget#librarySongTable::item {
+    padding: 10px 8px;
+}
+QTableWidget#librarySongTable::item:hover {
+    background: rgba(251,114,153,0.08);
+}
+QTableWidget#librarySongTable::item:selected {
+    background: rgba(251,114,153,0.22);
+    color: #FFFFFF;
+}
+
+/* 音乐库表头（作用域） */
+QTableWidget#librarySongTable QHeaderView::section {
+    background: #2A2A2A;
+    color: #CCCCCC;
+    font-size: 12px;
+    font-weight: 700;
+    border: none;
+    border-bottom: 2px solid #FB7299;
+    padding: 10px 8px;
 }

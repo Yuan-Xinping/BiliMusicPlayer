@@ -1,11 +1,13 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "../pages/DownloadManagerPage.h"
+#include "../pages/LibraryPage.h"
 #include "../components/PlaybackBar.h"
 #include "../../common/entities/Song.h"
 #include "../../app/BiliMusicPlayerApp.h"
 #include "../../service/DownloadService.h"
 #include "../../viewmodel/DownloadViewModel.h"
+#include "../../viewmodel/LibraryViewModel.h"
 #include "../themes/ThemeManager.h"
 #include "../../common/AppConfig.h"
 #include "../pages/settings/SettingsPage.h"
@@ -687,43 +689,62 @@ void MainWindow::setupContentPages()
         return;
     }
 
+    // ===== 下载管理（保持不变） =====
     DownloadService* downloadService = m_app->getDownloadService();
     if (!downloadService) {
         qCritical() << "❌ 无法创建页面：DownloadService 为空";
         return;
     }
-
     m_downloadViewModel = new DownloadViewModel(downloadService, this);
-    qDebug() << "✅ DownloadViewModel 已创建";
-
     m_downloadManagerPage = new DownloadManagerPage(m_downloadViewModel, this);
 
     QWidget* oldDownloadPage = ui->contentStackedWidget->widget(1);
     ui->contentStackedWidget->removeWidget(oldDownloadPage);
-    if (oldDownloadPage) {
-        oldDownloadPage->deleteLater();
-        qDebug() << "已移除下载管理占位符页面";
-    }
-
+    if (oldDownloadPage) oldDownloadPage->deleteLater();
     ui->contentStackedWidget->insertWidget(1, m_downloadManagerPage);
-    qDebug() << "✅ 下载管理页面已创建（使用 ViewModel）";
 
+    // ===== 设置（保持不变） =====
     m_settingsPage = new SettingsPage(this);
     QWidget* oldSettingsPage = ui->contentStackedWidget->widget(2);
     ui->contentStackedWidget->removeWidget(oldSettingsPage);
-    if (oldSettingsPage) {
-        oldSettingsPage->deleteLater();
-    }
+    if (oldSettingsPage) oldSettingsPage->deleteLater();
     ui->contentStackedWidget->insertWidget(2, m_settingsPage);
-    qDebug() << "✅ 设置页面已创建";
 
     connect(m_settingsPage, &SettingsPage::settingsChanged,
         m_downloadManagerPage, &DownloadManagerPage::onSettingsChanged);
-    qDebug() << "✅ 信号连接：SettingsPage → DownloadManagerPage";
-
     connect(m_settingsPage, &SettingsPage::settingsChanged,
         downloadService, &DownloadService::refreshConfig);
-    qDebug() << "✅ 信号连接：SettingsPage → DownloadService";
+
+    // ===== 🎵 音乐库 =====
+    {
+        LibraryViewModel* libraryVM = &LibraryViewModel::instance();
+        m_libraryPage = new LibraryPage(libraryVM, this);
+
+        QWidget* oldLibraryPage = ui->contentStackedWidget->widget(0);
+        ui->contentStackedWidget->removeWidget(oldLibraryPage);
+        if (oldLibraryPage) oldLibraryPage->deleteLater();
+        ui->contentStackedWidget->insertWidget(0, m_libraryPage);
+
+        // 双击播放 -> 更新播放栏
+        connect(m_libraryPage, &LibraryPage::requestPlaySongs, this,
+            [this](const QList<Song>& list, int index) {
+                if (!m_playbackBar || list.isEmpty() || index < 0 || index >= list.size()) return;
+                const Song& s = list.at(index);
+                m_playbackBar->setSong(s);
+                m_playbackBar->setDuration(s.getDurationSeconds());
+                m_playbackBar->setPosition(0);
+                m_playbackBar->setPlaybackState(true);
+                qDebug() << "▶️ 双击播放:" << s.getTitle() << "-" << s.getArtist();
+            });
+    }
+
+    //  关键：显式切回“音乐库”页，修复启动落在下载页的问题
+    ui->contentStackedWidget->setCurrentIndex(0);
+    if (m_musicLibraryBtn && m_downloadManagerBtn && m_settingsBtn) {
+        m_musicLibraryBtn->setChecked(true);
+        m_downloadManagerBtn->setChecked(false);
+        m_settingsBtn->setChecked(false);
+    }
 
     qDebug() << "✅ 所有页面已集成完成";
     qDebug() << "   内容页面总数:" << ui->contentStackedWidget->count();
@@ -736,7 +757,6 @@ void MainWindow::setApp(BiliMusicPlayerApp* app)
 
     setupContentPages();
 }
-
 
 void MainWindow::loadThemeFromConfig()
 {
@@ -795,6 +815,13 @@ void MainWindow::onThemeChanged(ThemeManager::Theme theme)
         m_playbackBar->update();
         qDebug() << "  - 播放栏已刷新";
     }
+    if (m_libraryPage) {
+        m_libraryPage->style()->unpolish(m_libraryPage);
+        m_libraryPage->style()->polish(m_libraryPage);
+        m_libraryPage->update();
+        qDebug() << "  - 音乐库页面已刷新";
+    }
+
 
 
     qDebug() << "✅ 所有组件已更新主题";

@@ -1,4 +1,3 @@
-// infra/ProcessRunner.cpp
 #include "ProcessRunner.h"
 #include <QDebug>
 #include <QRegularExpression>
@@ -16,7 +15,6 @@ ProcessRunner::ProcessRunner(QObject* parent)
     connect(m_process, &QProcess::errorOccurred,
         this, &ProcessRunner::onProcessError);
 
-    // 设置进程环境，确保 UTF-8 输出
 #ifdef Q_OS_WIN
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert("PYTHONIOENCODING", "utf-8");
@@ -26,8 +24,19 @@ ProcessRunner::ProcessRunner(QObject* parent)
 
 ProcessRunner::~ProcessRunner() {
     if (m_process && m_process->state() != QProcess::NotRunning) {
-        m_process->kill();
-        m_process->waitForFinished(3000);
+        qDebug() << "ProcessRunner: 析构时检测到进程仍在运行，正在清理...";
+
+        disconnect(m_process, nullptr, this, nullptr);
+
+        m_process->terminate();
+
+        if (!m_process->waitForFinished(3000)) {
+            qWarning() << "ProcessRunner: 进程未在3秒内终止，强制杀死";
+            m_process->kill();
+            m_process->waitForFinished(1000);
+        }
+
+        qDebug() << "ProcessRunner: 进程已清理";
     }
 }
 
@@ -40,12 +49,10 @@ bool ProcessRunner::start(const QString& program, const QStringList& arguments) 
     qDebug() << "ProcessRunner: 启动进程:" << program;
     qDebug() << "ProcessRunner: 参数:" << arguments;
 
-    // 设置进程工作目录和环境
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert("PYTHONIOENCODING", "utf-8");
     m_process->setProcessEnvironment(env);
 
-    // 直接启动程序
     m_process->start(program, arguments);
 
     if (!m_process->waitForStarted()) {
@@ -66,11 +73,22 @@ void ProcessRunner::setOutputCallback(const OutputCallback& callback) {
 }
 
 void ProcessRunner::terminate() {
-    if (m_process) {
+    if (m_process && m_process->state() == QProcess::Running) {
+        qDebug() << "ProcessRunner: 发送 SIGTERM 信号...";
         m_process->terminate();
-        if (!m_process->waitForFinished(5000)) {
-            m_process->kill();
-        }
+    }
+    else {
+        qDebug() << "ProcessRunner: 进程未运行，无需终止";
+    }
+}
+
+void ProcessRunner::kill() {
+    if (m_process && m_process->state() == QProcess::Running) {
+        qDebug() << "ProcessRunner: 强制杀死进程 (SIGKILL)...";
+        m_process->kill();
+    }
+    else {
+        qDebug() << "ProcessRunner: 进程未运行，无需杀死";
     }
 }
 
@@ -83,7 +101,21 @@ int ProcessRunner::exitCode() const {
 }
 
 bool ProcessRunner::waitForFinished(int msecs) {
-    return m_process ? m_process->waitForFinished(msecs) : false;
+    if (!m_process) {
+        return true;
+    }
+
+    if (m_process->state() == QProcess::NotRunning) {
+        return true; 
+    }
+
+    bool finished = m_process->waitForFinished(msecs);
+
+    if (!finished) {
+        qWarning() << "ProcessRunner: waitForFinished 超时 (" << msecs << "ms)";
+    }
+
+    return finished;
 }
 
 void ProcessRunner::onReadyReadStandardOutput() {
@@ -148,14 +180,16 @@ void ProcessRunner::onReadyReadStandardError() {
 }
 
 void ProcessRunner::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
-    qDebug() << "ProcessRunner: 进程完成，退出码:" << exitCode;
+    qDebug() << "ProcessRunner: 进程完成，退出码:" << exitCode
+        << "退出状态:" << (exitStatus == QProcess::NormalExit ? "正常" : "崩溃");
 
-    // 处理剩余的缓冲区内容
     if (!m_outputBuffer.trimmed().isEmpty()) {
         processOutputLine(m_outputBuffer.trimmed());
+        m_outputBuffer.clear();
     }
     if (!m_errorBuffer.trimmed().isEmpty()) {
         processOutputLine(m_errorBuffer.trimmed());
+        m_errorBuffer.clear();
     }
 
     emit finished(exitCode);
@@ -163,7 +197,30 @@ void ProcessRunner::onProcessFinished(int exitCode, QProcess::ExitStatus exitSta
 
 void ProcessRunner::onProcessError(QProcess::ProcessError error) {
     QString errorString = m_process->errorString();
-    qWarning() << "ProcessRunner 错误:" << errorString;
+    QString errorType;
+
+    switch (error) {
+    case QProcess::FailedToStart:
+        errorType = "启动失败";
+        break;
+    case QProcess::Crashed:
+        errorType = "进程崩溃";
+        break;
+    case QProcess::Timedout:
+        errorType = "超时";
+        break;
+    case QProcess::WriteError:
+        errorType = "写入错误";
+        break;
+    case QProcess::ReadError:
+        errorType = "读取错误";
+        break;
+    default:
+        errorType = "未知错误";
+        break;
+    }
+
+    qWarning() << "ProcessRunner 错误 [" << errorType << "]:" << errorString;
     emit this->error(errorString);
 }
 
@@ -177,12 +234,11 @@ void ProcessRunner::processOutputLine(const QString& line) {
         bool ok;
         double progress = match.captured(1).toDouble(&ok);
         if (ok && m_progressCallback) {
-            qDebug() << "📊 识别到进度:" << progress << "%"; 
+            qDebug() << "📊 识别到进度:" << progress << "%";
             m_progressCallback(progress / 100.0, QString("下载中: %1%").arg(progress, 0, 'f', 1));
         }
     }
 
-    // 调用输出回调
     if (m_outputCallback) {
         m_outputCallback(line);
     }
