@@ -1,4 +1,3 @@
-// service/PlaybackService.cpp
 #include "PlaybackService.h"
 #include "AudioPlayer.h"
 #include "PlaylistManager.h"
@@ -47,9 +46,15 @@ private slots:
         }
     }
 
-    void handleCurrentSongChanged(const Song& song) {
-        emit q->currentSongChanged(song);
-        qDebug() << "PlaybackService: 当前歌曲变化:" << song.getTitle();
+    void handleCurrentIndexChanged(int index) {
+        emit q->currentSongIndexChanged(index);
+
+        // 转发当前歌曲给 UI，刷新标题与艺术家
+        Song cur = playlistManager->getCurrentSong();
+        if (!cur.getId().isEmpty()) {
+            emit q->currentSongChanged(cur);
+            qDebug() << "PlaybackService: 当前歌曲变化:" << cur.getTitle();
+        }
     }
 
     void handlePositionChanged(qint64 position) {
@@ -70,10 +75,6 @@ private slots:
 
     void handlePlaylistChanged(const QList<Song>& playlist) {
         emit q->playlistChanged(playlist);
-    }
-
-    void handleCurrentIndexChanged(int index) {
-        emit q->currentSongIndexChanged(index);
     }
 
     void handleAudioError(const QString& error) {
@@ -214,6 +215,10 @@ void PlaybackService::playSong(const Song& song) {
     }
 
     d->playlistManager->setCurrentIndex(songIndex);
+
+    // 立即通知 UI（即使索引未真正变化时也能刷新）
+    emit currentSongChanged(song);
+
     d->audioPlayer->play(song.getLocalFilePath());
 }
 
@@ -262,7 +267,6 @@ void PlaybackService::playNext() {
         if (d->playbackQueue->contains(nextSong)) {
             d->playbackQueue->dequeue();
         }
-
         playSong(nextSong);
     }
 }

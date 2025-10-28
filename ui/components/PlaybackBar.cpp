@@ -1,4 +1,3 @@
-// components/PlaybackBar.cpp
 #include "PlaybackBar.h"
 #include "HoverButton.h"
 
@@ -198,7 +197,7 @@ void PlaybackBar::setupUI()
 }
 
 void PlaybackBar::setupStyles()
-{    
+{
 }
 
 void PlaybackBar::setSong(const Song& song)
@@ -244,17 +243,25 @@ void PlaybackBar::setPlaybackState(bool isPlaying)
 {
     m_isPlaying = isPlaying;
 
-    // 切换播放/暂停图标，保持颜色一致
     if (isPlaying) {
-        m_playPauseBtn->setText("⏸");  // 暂停图标
+        m_playPauseBtn->setText("⏸");
         qDebug() << "切换到暂停图标";
     }
     else {
-        m_playPauseBtn->setText("▶");  // 播放图标
+        m_playPauseBtn->setText("▶");
         qDebug() << "切换到播放图标";
     }
 
     m_playPauseBtn->update();
+}
+
+void PlaybackBar::setPlayMode(int mode)
+{
+    if (mode < 0) mode = 0;
+    if (mode > 3) mode = 3;
+    if (m_playMode == mode) return;
+    m_playMode = mode;
+    updateModeButtonDisplay();
 }
 
 void PlaybackBar::onPositionSliderChanged(int value)

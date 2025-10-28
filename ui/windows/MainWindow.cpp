@@ -11,12 +11,38 @@
 #include "../themes/ThemeManager.h"
 #include "../../common/AppConfig.h"
 #include "../pages/settings/SettingsPage.h"
+#include "../../service/PlaybackService.h"
+#include "../../common/PlaybackMode.h"
+#include "../../common/PlaybackState.h"
 #include <QApplication>
 #include <QScreen>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
 #include <QGraphicsDropShadowEffect>
+
+namespace {
+    // UI(0,1,2,3) -> Service PlaybackMode
+    inline PlaybackMode toPlaybackMode(int uiMode) {
+        switch (uiMode) {
+        case 0: return PlaybackMode::Normal;     // 顺序
+        case 1: return PlaybackMode::Shuffle;    // 随机
+        case 2: return PlaybackMode::RepeatOne;  // 单曲
+        case 3: return PlaybackMode::RepeatAll;  // 列表
+        default: return PlaybackMode::Normal;
+        }
+    }
+    // Service PlaybackMode -> UI(0,1,2,3)
+    inline int toUiMode(PlaybackMode mode) {
+        switch (mode) {
+        case PlaybackMode::Normal:    return 0;
+        case PlaybackMode::Shuffle:   return 1;
+        case PlaybackMode::RepeatOne: return 2;
+        case PlaybackMode::RepeatAll: return 3;
+        default: return 0;
+        }
+    }
+}
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -72,76 +98,76 @@ void MainWindow::setupPlaybackBar()
     // 设置布局
     QVBoxLayout* layout = new QVBoxLayout(ui->playbackBarWidget);
     layout->setContentsMargins(0, 0, 0, 0);
-	layout->setSpacing(0);
+    layout->setSpacing(0);
     layout->addWidget(m_playbackBar);
 
-	ui->playbackBarWidget->setFixedHeight(90);
-    // 测试数据
-    Song testSong;
-    testSong.setTitle("告白气球");
-    testSong.setArtist("周杰伦");
-    testSong.setDurationSeconds(263); // 4分23秒
+    ui->playbackBarWidget->setFixedHeight(90);
 
-    m_playbackBar->setSong(testSong);
-    m_playbackBar->setDuration(263);
-    m_playbackBar->setPosition(0);
-    m_playbackBar->setVolume(70);
+    // —— 连接 UI -> Service 控制 —— //
+    PlaybackService* ps = &PlaybackService::instance();
 
-    // 创建测试定时器
-    m_progressTimer = new QTimer(this);
-    connect(m_progressTimer, &QTimer::timeout, [this]() {
-        if (m_testPosition < 263) { // 总时长
-            m_testPosition++;
-            m_playbackBar->setPosition(m_testPosition);
+    connect(m_playbackBar, &PlaybackBar::playPauseClicked, this, [ps]() {
+        ps->togglePlayPause();
+        });
+    connect(m_playbackBar, &PlaybackBar::previousClicked, this, [ps]() {
+        ps->playPrevious();
+        });
+    connect(m_playbackBar, &PlaybackBar::nextClicked, this, [ps]() {
+        ps->playNext();
+        });
+    connect(m_playbackBar, &PlaybackBar::positionChanged, this, [ps](int sec) {
+        ps->seek(static_cast<qint64>(sec) * 1000);
+        });
+    connect(m_playbackBar, &PlaybackBar::volumeChanged, this, [ps](int vol) {
+        ps->setVolume(vol);
+        });
+    connect(m_playbackBar, &PlaybackBar::playModeChanged, this, [ps](int uiMode) {
+        ps->setPlaybackMode(toPlaybackMode(uiMode));
+        });
+
+    // —— 连接 Service -> UI 状态 —— //
+    connect(ps, &PlaybackService::playbackStateChanged, this, [this](PlaybackState st) {
+        m_playbackBar->setPlaybackState(st == PlaybackState::Playing);
+        });
+    connect(ps, &PlaybackService::currentSongChanged, this, [this](const Song& s) {
+        m_playbackBar->setSong(s);
+        // 优先用元数据的总时长（秒），随后由 durationChanged 精确覆盖
+        if (s.getDurationSeconds() > 0)
+            m_playbackBar->setDuration(static_cast<int>(s.getDurationSeconds()));
+        // 切歌重置进度显示
+        m_playbackBar->setPosition(0);
+        });
+    connect(ps, &PlaybackService::positionChanged, this, [this](qint64 posMs) {
+        m_playbackBar->setPosition(static_cast<int>(posMs / 1000));
+        });
+    connect(ps, &PlaybackService::durationChanged, this, [this](qint64 durMs) {
+        m_playbackBar->setDuration(static_cast<int>(durMs / 1000));
+        });
+    connect(ps, &PlaybackService::volumeChanged, this, [this](int v) {
+        m_playbackBar->setVolume(v);
+        });
+    connect(ps, &PlaybackService::playbackModeChanged, this, [this](PlaybackMode m) {
+        m_playbackBar->setPlayMode(toUiMode(m));
+        });
+    connect(ps, &PlaybackService::error, this, [](const QString& err) {
+        qWarning() << "Playback error:" << err;
+        // 可进一步加 Toast 提示
+        });
+
+    // —— 初始同步（从服务拉取当前状态） —— //
+    m_playbackBar->setVolume(ps->getVolume());
+    m_playbackBar->setPlaybackState(ps->getPlaybackState() == PlaybackState::Playing);
+    m_playbackBar->setPlayMode(toUiMode(ps->getPlaybackMode()));
+    m_playbackBar->setPosition(static_cast<int>(ps->getCurrentPosition() / 1000));
+    m_playbackBar->setDuration(static_cast<int>(ps->getDuration() / 1000));
+
+    const Song cur = ps->getCurrentSong();
+    if (!cur.getId().isEmpty()) {
+        m_playbackBar->setSong(cur);
+        if (cur.getDurationSeconds() > 0) {
+            m_playbackBar->setDuration(static_cast<int>(cur.getDurationSeconds()));
         }
-        else {
-            m_progressTimer->stop();
-            m_testPosition = 0;
-        }
-        });
-
-    // 测试信号连接
-    connect(m_playbackBar, &PlaybackBar::playPauseClicked, [this]() {
-        static bool playing = false;
-        playing = !playing;
-        m_playbackBar->setPlaybackState(playing);
-
-        if (playing) {
-            m_progressTimer->start(1000); // 每秒更新一次
-            qDebug() << "开始播放: 告白气球 - 周杰伦";
-        }
-        else {
-            m_progressTimer->stop();
-            qDebug() << "暂停播放";
-        }
-        });
-
-    connect(m_playbackBar, &PlaybackBar::previousClicked, []() {
-        qDebug() << "上一首按钮被点击";
-        });
-
-    connect(m_playbackBar, &PlaybackBar::nextClicked, []() {
-        qDebug() << "下一首按钮被点击";
-        });
-
-    connect(m_playbackBar, &PlaybackBar::positionChanged, [](int pos) {
-        qDebug() << "进度改变：" << pos << "秒";
-        });
-
-    connect(m_playbackBar, &PlaybackBar::volumeChanged, [](int vol) {
-        qDebug() << "音量改变：" << vol;
-        });
-
-    connect(m_playbackBar, &PlaybackBar::playModeChanged, [](int mode) {
-        QString modeText;
-        switch (mode) {
-        case 0: modeText = "顺序播放"; break;
-        case 1: modeText = "随机播放"; break;
-        case 2: modeText = "单曲循环"; break;
-        case 3: modeText = "列表循环"; break;
-        }
-        qDebug() << "播放模式切换为：" << modeText;
-        });
+    }
 }
 
 void MainWindow::setupStyles()
@@ -725,16 +751,11 @@ void MainWindow::setupContentPages()
         if (oldLibraryPage) oldLibraryPage->deleteLater();
         ui->contentStackedWidget->insertWidget(0, m_libraryPage);
 
-        // 双击播放 -> 更新播放栏
+        // 双击播放 -> 调用服务播放（UI 状态由服务信号驱动）
         connect(m_libraryPage, &LibraryPage::requestPlaySongs, this,
-            [this](const QList<Song>& list, int index) {
-                if (!m_playbackBar || list.isEmpty() || index < 0 || index >= list.size()) return;
-                const Song& s = list.at(index);
-                m_playbackBar->setSong(s);
-                m_playbackBar->setDuration(s.getDurationSeconds());
-                m_playbackBar->setPosition(0);
-                m_playbackBar->setPlaybackState(true);
-                qDebug() << "▶️ 双击播放:" << s.getTitle() << "-" << s.getArtist();
+            [](const QList<Song>& list, int index) {
+                if (list.isEmpty() || index < 0 || index >= list.size()) return;
+                PlaybackService::instance().playPlaylist(list, index);
             });
     }
 

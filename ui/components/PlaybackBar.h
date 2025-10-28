@@ -1,4 +1,3 @@
-// src/components/PlaybackBar.h
 #pragma once
 
 #include <QWidget>
@@ -20,6 +19,7 @@ public:
     void setPosition(int seconds);
     void setVolume(int volume);
     void setPlaybackState(bool isPlaying);
+    void setPlayMode(int mode); //服务 -> UI 同步播放模式（0 顺序、1 随机、2 单曲、3 列表）
 
 signals:
     void playPauseClicked();
