@@ -1,4 +1,3 @@
-// ui/dialogs/PlaylistDialog.h
 #pragma once
 #include <QDialog>
 #include <QList>
@@ -14,6 +13,10 @@ public:
     void setPlaylist(const QList<Song>& list, int currentIndex);
     void setQueue(const QList<Song>& queue);
 
+public slots:
+    // 仅更新选中行与可视标记，不重建列表
+    void setCurrentIndex(int row);
+
 private:
     void setupUI();
     void refreshPlaylist();
@@ -26,4 +29,5 @@ private:
     QList<Song> m_playlist;
     QList<Song> m_queue;
     int m_currentIndex = -1;
+    bool m_updatingSelection = false;
 };

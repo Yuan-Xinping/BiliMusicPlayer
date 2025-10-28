@@ -164,17 +164,22 @@ void MainWindow::setupPlaybackBar()
             // 初始填充
             m_playlistDialog->setPlaylist(ps->getCurrentPlaylist(), ps->getCurrentSongIndex());
             m_playlistDialog->setQueue(ps->getPlaybackQueue());
-            // 变化监听
+
+            // 变化监听：使用 QueuedConnection，避免同帧重入
             connect(ps, &PlaybackService::playlistChanged, this, [this, ps](const QList<Song>& pl) {
                 if (m_playlistDialog) m_playlistDialog->setPlaylist(pl, ps->getCurrentSongIndex());
-                });
-            connect(ps, &PlaybackService::currentSongIndexChanged, this, [this, ps](int idx) {
-                if (m_playlistDialog) m_playlistDialog->setPlaylist(ps->getCurrentPlaylist(), idx);
-                });
+                }, Qt::QueuedConnection);
+
+            // 关键：仅更新选中行，不重建列表
+            connect(ps, &PlaybackService::currentSongIndexChanged, this, [this](int idx) {
+                if (m_playlistDialog) m_playlistDialog->setCurrentIndex(idx);
+                }, Qt::QueuedConnection);
+
             connect(ps, &PlaybackService::playbackQueueChanged, this, [this](const QList<Song>& q) {
                 if (m_playlistDialog) m_playlistDialog->setQueue(q);
-                });
+                }, Qt::QueuedConnection);
         }
+
         if (m_playlistDialog->isVisible()) {
             m_playlistDialog->hide();
         }
@@ -186,6 +191,8 @@ void MainWindow::setupPlaybackBar()
             m_playlistDialog->raise();
         }
         });
+
+
 
     // —— 连接 Service -> UI 状态 —— //
     connect(ps, &PlaybackService::playbackStateChanged, this, [this](PlaybackState st) {
