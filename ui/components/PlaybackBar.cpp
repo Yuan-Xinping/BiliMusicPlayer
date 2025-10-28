@@ -17,6 +17,16 @@ PlaybackBar::PlaybackBar(QWidget* parent)
 {
     setupUI();
     setupStyles();
+
+    // 拖动预览节流器（200ms）
+    m_previewTimer = new QTimer(this);
+    m_previewTimer->setInterval(200);
+    m_previewTimer->setSingleShot(false);
+    connect(m_previewTimer, &QTimer::timeout, this, [this]() {
+        if (m_isDraggingPosition && m_pendingPreviewValue >= 0) {
+            emit positionPreview(m_pendingPreviewValue);
+        }
+        });
 }
 
 void PlaybackBar::setupUI()
@@ -178,6 +188,13 @@ void PlaybackBar::setupUI()
     playlistButton->setHoverSize(QSize(40, 40));
     m_playlistBtn = playlistButton;
 
+    m_modeButton->setFocusPolicy(Qt::NoFocus);
+    m_previousBtn->setFocusPolicy(Qt::NoFocus);
+    m_playPauseBtn->setFocusPolicy(Qt::NoFocus);
+    m_nextBtn->setFocusPolicy(Qt::NoFocus);
+    m_volumeBtn->setFocusPolicy(Qt::NoFocus);
+    m_playlistBtn->setFocusPolicy(Qt::NoFocus);
+
     volumeLayout->addWidget(volumeGroup);
     volumeLayout->addStretch();
     volumeLayout->addWidget(m_playlistBtn);
@@ -191,9 +208,15 @@ void PlaybackBar::setupUI()
     connect(m_playPauseBtn, &QPushButton::clicked, this, &PlaybackBar::playPauseClicked);
     connect(m_previousBtn, &QPushButton::clicked, this, &PlaybackBar::previousClicked);
     connect(m_nextBtn, &QPushButton::clicked, this, &PlaybackBar::nextClicked);
+
+    // 进度条：按下/拖动/松开
+    connect(m_positionSlider, &QAbstractSlider::sliderPressed, this, &PlaybackBar::onPositionSliderPressed);
+    connect(m_positionSlider, &QAbstractSlider::sliderReleased, this, &PlaybackBar::onPositionSliderReleased);
     connect(m_positionSlider, &QSlider::valueChanged, this, &PlaybackBar::onPositionSliderChanged);
+
     connect(m_volumeSlider, &QSlider::valueChanged, this, &PlaybackBar::onVolumeSliderChanged);
     connect(m_modeButton, &QPushButton::clicked, this, &PlaybackBar::onModeButtonClicked);
+    connect(m_playlistBtn, &QPushButton::clicked, this, &PlaybackBar::playlistClicked);
 }
 
 void PlaybackBar::setupStyles()
@@ -216,6 +239,10 @@ void PlaybackBar::setDuration(int seconds)
 
 void PlaybackBar::setPosition(int seconds)
 {
+    // 拖动中不追随后台位置
+    if (m_isDraggingPosition) {
+        return;
+    }
     m_currentPosition = seconds;
     m_positionSlider->setValue(seconds);
     m_currentTimeLabel->setText(formatTime(seconds));
@@ -264,12 +291,43 @@ void PlaybackBar::setPlayMode(int mode)
     updateModeButtonDisplay();
 }
 
+void PlaybackBar::onPositionSliderPressed()
+{
+    m_isDraggingPosition = true;
+    m_pendingPreviewValue = m_positionSlider->value();
+    // 开始节流预览
+    if (m_previewTimer && !m_previewTimer->isActive()) {
+        m_previewTimer->start();
+    }
+}
+
+void PlaybackBar::onPositionSliderReleased()
+{
+    // 结束预览，发出一次性 Seek
+    if (m_previewTimer && m_previewTimer->isActive()) {
+        m_previewTimer->stop();
+    }
+    m_isDraggingPosition = false;
+
+    const int target = m_positionSlider->value();
+    m_currentPosition = target;
+    m_currentTimeLabel->setText(formatTime(target));
+    emit positionChanged(target);
+}
+
 void PlaybackBar::onPositionSliderChanged(int value)
 {
+    // 拖动中只更新标签和待预览值，不触发 seek
+    if (m_isDraggingPosition) {
+        m_pendingPreviewValue = value;
+        m_currentTimeLabel->setText(formatTime(value));
+        return;
+    }
+
+    // 非拖动场景（例如服务端位置变更 setPosition 导致的 UI 变化），更新状态但不向外重复发出
     if (value != m_currentPosition) {
         m_currentPosition = value;
         m_currentTimeLabel->setText(formatTime(value));
-        emit positionChanged(value);
     }
 }
 

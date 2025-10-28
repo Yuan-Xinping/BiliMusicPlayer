@@ -4,8 +4,34 @@
 #include "PlaybackHistory.h"
 #include "PlaybackQueue.h"
 #include "../data/SongRepository.h"
+#include "../common/AppConfig.h"
+
 #include <QTimer>
 #include <QDebug>
+#include <QHash>
+#include <QFileInfo>
+#include <QtGlobal>
+
+namespace {
+    inline PlaybackMode modeFromInt(int v) {
+        switch (v) {
+        case 1: return PlaybackMode::Shuffle;
+        case 2: return PlaybackMode::RepeatOne;
+        case 3: return PlaybackMode::RepeatAll;
+        case 0:
+        default: return PlaybackMode::Normal;
+        }
+    }
+    inline int intFromMode(PlaybackMode m) {
+        switch (m) {
+        case PlaybackMode::Shuffle:   return 1;
+        case PlaybackMode::RepeatOne: return 2;
+        case PlaybackMode::RepeatAll: return 3;
+        case PlaybackMode::Normal:
+        default: return 0;
+        }
+    }
+}
 
 class PlaybackService::Impl : public QObject {
     Q_OBJECT
@@ -21,12 +47,61 @@ public:
         , songRepository(new SongRepository(this))
         , positionTimer(new QTimer(this))
         , currentState(PlaybackState::Stopped)
-        , wasPlaying(false)
+        , loopA(-1)
+        , loopB(-1)
+        , saveDebounce(new QTimer(this))
+        , restoringSession(false)
+        , pendingSave(false)
+        , lastSavedPositionMs(-1)
+        , lastUserVolume(70)
     {
         setupConnections();
         setupTimer();
         setupSmartFeatures();
-        qDebug() << "PlaybackService::Impl initialized with smart features";
+
+        // 启动时恢复音量与播放模式
+        AppConfig& cfg = AppConfig::instance();
+        audioPlayer->setVolume(cfg.getPlayerVolume());
+        playlistManager->setPlaybackMode(modeFromInt(cfg.getPlayerPlaybackMode()));
+        lastUserVolume = cfg.getPlayerVolume();
+
+        // 防抖保存定时器
+        saveDebounce->setInterval(700);
+        saveDebounce->setSingleShot(true);
+        connect(saveDebounce, &QTimer::timeout, this, [this]() {
+            if (!pendingSave || restoringSession) return;
+            pendingSave = false;
+            AppConfig::instance().save();
+            });
+
+        // 会话恢复改为事件循环启动后执行，降低构造期时序风险
+        if (cfg.getResumeOnStartup()) {
+            QTimer::singleShot(0, this, &Impl::restoreSession);
+        }
+    }
+
+    // 合并保存（防抖）
+    void scheduleConfigSave() {
+        if (restoringSession) return;
+        pendingSave = true;
+        if (!saveDebounce->isActive()) saveDebounce->start();
+    }
+
+    // 播放前校验本地文件是否存在；若静音则恢复到上次用户音量
+    bool safeStartSong(const Song& song) {
+        const QString path = song.getLocalFilePath();
+        if (path.isEmpty() || !QFileInfo::exists(path)) {
+            emit q->error(QString("音频文件不存在，已跳过：%1").arg(song.getTitle()));
+            qWarning() << "PlaybackService: 文件不存在，跳过:" << path;
+            return false;
+        }
+        if (audioPlayer->volume() == 0 && lastUserVolume > 0) {
+            qDebug() << "[Service] safeStartSong: restore vol to" << lastUserVolume;
+            audioPlayer->setVolume(lastUserVolume);
+        }
+        qDebug() << "[Service] safeStartSong: play path=" << path;
+        audioPlayer->play(path);
+        return true;
     }
 
 private slots:
@@ -35,30 +110,52 @@ private slots:
             currentState = state;
             emit q->playbackStateChanged(state);
 
-            if (state == PlaybackState::Playing) {
-                positionTimer->start();
-            }
-            else {
-                positionTimer->stop();
-            }
+            if (state == PlaybackState::Playing) positionTimer->start();
+            else positionTimer->stop();
 
-            qDebug() << "PlaybackService: 播放状态变化:" << (int)state;
+            qDebug() << "[Service] stateChanged ->" << (int)state
+                << "vol=" << audioPlayer->volume()
+                << "posMs=" << audioPlayer->position();
         }
     }
 
     void handleCurrentIndexChanged(int index) {
         emit q->currentSongIndexChanged(index);
 
-        // 转发当前歌曲给 UI，刷新标题与艺术家
         Song cur = playlistManager->getCurrentSong();
         if (!cur.getId().isEmpty()) {
             emit q->currentSongChanged(cur);
+            if (!restoringSession) {
+                AppConfig& cfg = AppConfig::instance();
+                cfg.setLastSongId(cur.getId());
+                scheduleConfigSave();
+            }
             qDebug() << "PlaybackService: 当前歌曲变化:" << cur.getTitle();
         }
     }
 
     void handlePositionChanged(qint64 position) {
         emit q->positionChanged(position);
+
+        if (restoringSession) return;
+
+        // 至少每5秒记录一次位置，减少写盘
+        if (lastSavedPositionMs < 0 || qAbs(position - lastSavedPositionMs) >= 5000) {
+            qDebug() << "[Service] positionTick 5s"
+                << "state=" << (int)currentState
+                << "vol=" << audioPlayer->volume()
+                << "posMs=" << position;
+
+            lastSavedPositionMs = position;
+            AppConfig& cfg = AppConfig::instance();
+            cfg.setLastPositionMs(position);
+
+            // 同步当前歌曲ID，保障恢复场景一致
+            Song cur = playlistManager->getCurrentSong();
+            if (!cur.getId().isEmpty()) cfg.setLastSongId(cur.getId());
+
+            scheduleConfigSave();
+        }
     }
 
     void handleDurationChanged(qint64 duration) {
@@ -67,19 +164,41 @@ private slots:
 
     void handleVolumeChanged(int volume) {
         emit q->volumeChanged(volume);
+        if (volume > 0) lastUserVolume = volume;
+        qDebug() << "[Service] volumeChanged ->" << volume
+            << "(restoring=" << restoringSession << ")"
+            << "state=" << (int)currentState;
+
+        if (restoringSession) return;
+        AppConfig& cfg = AppConfig::instance();
+        cfg.setPlayerVolume(volume);
+        scheduleConfigSave();
     }
 
     void handlePlaybackModeChanged(PlaybackMode mode) {
         emit q->playbackModeChanged(mode);
+        if (restoringSession) return;
+
+        AppConfig& cfg = AppConfig::instance();
+        cfg.setPlayerPlaybackMode(intFromMode(mode));
+        scheduleConfigSave();
     }
 
     void handlePlaylistChanged(const QList<Song>& playlist) {
         emit q->playlistChanged(playlist);
+        if (restoringSession) return;
+
+        QStringList plIds; for (const Song& s : playlist) plIds << s.getId();
+        AppConfig& cfg = AppConfig::instance();
+        cfg.setLastPlaylistIds(plIds);
+        scheduleConfigSave();
     }
 
     void handleAudioError(const QString& error) {
         emit q->error(error);
         qWarning() << "PlaybackService: 音频播放错误:" << error;
+        // 自动跳过损坏/不存在的文件
+        q->playNext();
     }
 
     void handleSongFinished() {
@@ -88,18 +207,56 @@ private slots:
         qint64 duration = audioPlayer->duration();
         playbackHistory->updateCurrentRecord(duration, true);
 
-        Song nextSong = playlistManager->getSmartNextSong();
+        // 1) 播放队列优先
+        const QList<Song> queue = playbackQueue ? playbackQueue->getQueue() : QList<Song>{};
+        if (!queue.isEmpty()) {
+            Song head = queue.first();
+            playbackQueue->dequeue();
+            q->playSong(head);
+            return;
+        }
 
-        if (!nextSong.getId().isEmpty()) {
-            if (playbackQueue && playbackQueue->contains(nextSong)) {
-                playbackQueue->dequeue();
+        // 2) 根据播放模式
+        PlaybackMode mode = playlistManager->getPlaybackMode();
+
+        if (mode == PlaybackMode::RepeatOne) {
+            Song cur = playlistManager->getCurrentSong();
+            if (!cur.getId().isEmpty()) {
+                q->playSong(cur);
+                return;
             }
+        }
 
-            q->playSong(nextSong);
+        if (mode == PlaybackMode::Shuffle) {
+            Song s = playlistManager->getSmartNextSong();
+            if (!s.getId().isEmpty()) {
+                q->playSong(s);
+                return;
+            }
         }
-        else {
-            qDebug() << "PlaybackService: 没有更多歌曲可播放";
+
+        // Normal / RepeatAll：顺序推进
+        const QList<Song> pl = playlistManager->getPlaylist();
+        const int size = pl.size();
+        if (size <= 0) {
+            qDebug() << "PlaybackService: 播放列表为空";
+            return;
         }
+        const int idx = playlistManager->getCurrentIndex();
+        int nextIndex = idx + 1;
+
+        if (nextIndex >= size) {
+            if (mode == PlaybackMode::RepeatAll) {
+                nextIndex = 0;
+            }
+            else {
+                qDebug() << "PlaybackService: 顺序播放到末尾，停止";
+                q->stop();
+                return;
+            }
+        }
+
+        q->playSong(pl[nextIndex]);
     }
 
     void handleHistoryRecordAdded(const PlaybackRecord& record) {
@@ -109,6 +266,12 @@ private slots:
 
     void handleQueueChanged(const QList<Song>& queue) {
         emit q->playbackQueueChanged(queue);
+        if (restoringSession) return;
+
+        QStringList qIds; for (const Song& s : queue) qIds << s.getId();
+        AppConfig& cfg = AppConfig::instance();
+        cfg.setLastQueueIds(qIds);
+        scheduleConfigSave();
     }
 
     void handleSmartPlaylistGenerated(const QList<Song>& playlist) {
@@ -118,6 +281,13 @@ private slots:
     void updatePosition() {
         if (currentState == PlaybackState::Playing) {
             qint64 position = audioPlayer->position();
+
+            // A-B 循环：超过 B 时回跳 A
+            if (loopA >= 0 && loopB > loopA && position >= loopB) {
+                audioPlayer->setPosition(loopA);
+                return;
+            }
+
             emit q->positionChanged(position);
         }
     }
@@ -172,6 +342,66 @@ private:
         qDebug() << "PlaybackService: 智能播放功能已启用";
     }
 
+    // 会话恢复：从 AppConfig 恢复 列表/队列/当前歌曲/进度
+    void restoreSession() {
+        AppConfig& cfg = AppConfig::instance();
+        restoringSession = true;
+
+        // 建立 id->Song 快速映射
+        QList<Song> allSongs = songRepository->findAll();
+        QHash<QString, Song> byId;
+        byId.reserve(allSongs.size());
+        for (const Song& s : allSongs) {
+            if (!s.getId().isEmpty()) byId.insert(s.getId(), s);
+        }
+
+        // 恢复播放列表
+        QList<Song> restoredPlaylist;
+        const QStringList plIds = cfg.getLastPlaylistIds();
+        for (const QString& id : plIds) {
+            auto it = byId.constFind(id);
+            if (it != byId.constEnd()) restoredPlaylist << it.value();
+        }
+
+        if (!restoredPlaylist.isEmpty()) {
+            playlistManager->setPlaylist(restoredPlaylist);
+
+            // 恢复队列
+            const QStringList qIds = cfg.getLastQueueIds();
+            for (const QString& id : qIds) {
+                auto it = byId.constFind(id);
+                if (it != byId.constEnd()) playbackQueue->enqueue(it.value());
+            }
+
+            // 当前歌曲索引
+            int idx = 0;
+            const QString lastId = cfg.getLastSongId();
+            if (!lastId.isEmpty()) {
+                for (int i = 0; i < restoredPlaylist.size(); ++i) {
+                    if (restoredPlaylist[i].getId() == lastId) { idx = i; break; }
+                }
+            }
+            playlistManager->setCurrentIndex(idx);
+
+            // 自动播放并恢复进度
+            const Song cur = restoredPlaylist[idx];
+            if (safeStartSong(cur)) {
+                const qint64 resumePos = cfg.getLastPositionMs();
+                if (resumePos > 0) {
+                    QTimer::singleShot(200, audioPlayer, [this, resumePos]() {
+                        audioPlayer->setPosition(resumePos);
+                        });
+                }
+            }
+            else {
+                // 若当前歌无效，尝试下一首
+                q->playNext();
+            }
+        }
+
+        restoringSession = false;
+    }
+
 public:
     PlaybackService* q;
     AudioPlayer* audioPlayer;
@@ -182,7 +412,17 @@ public:
     QTimer* positionTimer;
 
     PlaybackState currentState;
-    bool wasPlaying;
+
+    // A-B 循环点
+    qint64 loopA;
+    qint64 loopB;
+
+    // 配置持久化合并
+    QTimer* saveDebounce;
+    bool restoringSession;
+    bool pendingSave;
+    qint64 lastSavedPositionMs;
+    int lastUserVolume;
 };
 
 // PlaybackService 主类实现
@@ -216,10 +456,11 @@ void PlaybackService::playSong(const Song& song) {
 
     d->playlistManager->setCurrentIndex(songIndex);
 
-    // 立即通知 UI（即使索引未真正变化时也能刷新）
-    emit currentSongChanged(song);
-
-    d->audioPlayer->play(song.getLocalFilePath());
+    // 播放前校验文件，静音兜底
+    if (!d->safeStartSong(song)) {
+        // 跳到下一首（将触发自动错误跳过路径）
+        playNext();
+    }
 }
 
 void PlaybackService::playPlaylist(const QList<Song>& playlist, int startIndex) {
@@ -242,19 +483,43 @@ void PlaybackService::playPlaylist(const QList<Song>& playlist, int startIndex) 
 }
 
 void PlaybackService::togglePlayPause() {
+    qDebug() << "[Service] togglePlayPause() enter."
+        << "state=" << (int)d->currentState
+        << "vol=" << d->audioPlayer->volume()
+        << "posMs=" << d->audioPlayer->position();
+
     switch (d->currentState) {
     case PlaybackState::Playing:
+        qDebug() << "[Service] request: pause()";
         d->audioPlayer->pause();
         break;
     case PlaybackState::Paused:
+        if (d->audioPlayer->volume() == 0 && d->lastUserVolume > 0) {
+            qDebug() << "[Service] paused->resume with vol restore to" << d->lastUserVolume;
+            d->audioPlayer->setVolume(d->lastUserVolume);
+        }
+        else {
+            qDebug() << "[Service] paused->resume keep vol=" << d->audioPlayer->volume();
+        }
         d->audioPlayer->resume();
         break;
     case PlaybackState::Stopped:
         if (d->playlistManager->hasCurrentSong()) {
+            qDebug() << "[Service] stopped->play currentSong";
             playSong(d->playlistManager->getCurrentSong());
+        }
+        else {
+            qDebug() << "[Service] stopped AND no currentSong";
         }
         break;
     }
+
+    QTimer::singleShot(80, d, [this]() {
+        qDebug() << "[Service] togglePlayPause() post."
+            << "state=" << (int)d->currentState
+            << "vol=" << d->audioPlayer->volume()
+            << "posMs=" << d->audioPlayer->position();
+        });
 }
 
 void PlaybackService::stop() {
@@ -262,20 +527,68 @@ void PlaybackService::stop() {
 }
 
 void PlaybackService::playNext() {
-    Song nextSong = d->playlistManager->getSmartNextSong();
-    if (!nextSong.getId().isEmpty()) {
-        if (d->playbackQueue->contains(nextSong)) {
-            d->playbackQueue->dequeue();
-        }
-        playSong(nextSong);
+    // 1) 播放队列优先
+    const QList<Song> queue = d->playbackQueue->getQueue();
+    if (!queue.isEmpty()) {
+        Song head = queue.first();
+        d->playbackQueue->dequeue();
+        playSong(head);
+        return;
     }
+
+    // 2) 模式分支
+    PlaybackMode mode = d->playlistManager->getPlaybackMode();
+
+    if (mode == PlaybackMode::Shuffle) {
+        Song s = d->playlistManager->getSmartNextSong();
+        if (!s.getId().isEmpty()) playSong(s);
+        return;
+    }
+
+    // 手动“下一首”：RepeatOne 也按顺序推进
+    const QList<Song> pl = d->playlistManager->getPlaylist();
+    const int size = pl.size();
+    if (size <= 0) return;
+
+    int idx = d->playlistManager->getCurrentIndex();
+    int nextIndex = idx + 1;
+
+    if (nextIndex >= size) {
+        // 手动下一首：Normal/RepeatAll 都从头开始
+        nextIndex = 0;
+    }
+
+    playSong(pl[nextIndex]);
 }
 
 void PlaybackService::playPrevious() {
-    Song prevSong = d->playlistManager->getSmartPreviousSong();
-    if (!prevSong.getId().isEmpty()) {
-        playSong(prevSong);
+    // 2 秒规则：>2s 回到本曲开头
+    if (d->audioPlayer->position() > 2000) {
+        d->audioPlayer->setPosition(0);
+        return;
     }
+
+    PlaybackMode mode = d->playlistManager->getPlaybackMode();
+
+    if (mode == PlaybackMode::Shuffle) {
+        Song s = d->playlistManager->getSmartPreviousSong();
+        if (!s.getId().isEmpty()) playSong(s);
+        return;
+    }
+
+    const QList<Song> pl = d->playlistManager->getPlaylist();
+    const int size = pl.size();
+    if (size <= 0) return;
+
+    int idx = d->playlistManager->getCurrentIndex();
+    int prevIndex = idx - 1;
+
+    if (prevIndex < 0) {
+        // 手动上一首：Normal/RepeatAll 跳到最后
+        prevIndex = size - 1;
+    }
+
+    playSong(pl[prevIndex]);
 }
 
 void PlaybackService::seek(qint64 position) {
@@ -313,6 +626,10 @@ PlaybackMode PlaybackService::getPlaybackMode() const {
 
 void PlaybackService::setPlaybackMode(PlaybackMode mode) {
     d->playlistManager->setPlaybackMode(mode);
+    // 持久化（防抖）
+    AppConfig& cfg = AppConfig::instance();
+    cfg.setPlayerPlaybackMode(intFromMode(mode));
+    d->scheduleConfigSave();
 }
 
 int PlaybackService::getVolume() const {
@@ -321,6 +638,11 @@ int PlaybackService::getVolume() const {
 
 void PlaybackService::setVolume(int volume) {
     d->audioPlayer->setVolume(volume);
+    if (volume > 0) d->lastUserVolume = volume;
+    // 持久化（防抖）
+    AppConfig& cfg = AppConfig::instance();
+    cfg.setPlayerVolume(volume);
+    d->scheduleConfigSave();
 }
 
 QList<Song> PlaybackService::getCurrentPlaylist() const {
@@ -411,6 +733,21 @@ void PlaybackService::playSmartPrevious() {
     if (!prevSong.getId().isEmpty()) {
         playSong(prevSong);
     }
+}
+
+// A-B 循环
+void PlaybackService::setLoopA(qint64 ms) {
+    d->loopA = ms < 0 ? -1 : ms;
+    emit loopABChanged(d->loopA, d->loopB);
+}
+void PlaybackService::setLoopB(qint64 ms) {
+    d->loopB = ms < 0 ? -1 : ms;
+    emit loopABChanged(d->loopA, d->loopB);
+}
+void PlaybackService::clearLoopAB() {
+    d->loopA = -1;
+    d->loopB = -1;
+    emit loopABChanged(d->loopA, d->loopB);
 }
 
 #include "PlaybackService.moc"

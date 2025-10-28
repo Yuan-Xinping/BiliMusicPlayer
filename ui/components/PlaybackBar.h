@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QSlider>
 #include <QLabel>
+#include <QTimer>
 #include "../../common/entities/Song.h"
 
 class HoverButton;
@@ -25,12 +26,16 @@ signals:
     void playPauseClicked();
     void previousClicked();
     void nextClicked();
-    void positionChanged(int position);
+    void positionChanged(int position);    // 松开进度条时触发的一次性 seek
+    void positionPreview(int position);    // 拖动中节流预览（可选）
     void volumeChanged(int volume);
     void playModeChanged(int mode);
+    void playlistClicked();
 
 private slots:
     void onPositionSliderChanged(int value);
+    void onPositionSliderPressed();
+    void onPositionSliderReleased();
     void onVolumeSliderChanged(int value);
     void onModeButtonClicked();
 
@@ -62,4 +67,9 @@ private:
     int m_currentPosition = 0;
     int m_totalDuration = 0;
     Song m_currentSong;
+
+    // 拖动进度条节流预览
+    bool m_isDraggingPosition = false;
+    QTimer* m_previewTimer = nullptr;
+    int m_pendingPreviewValue = -1;
 };

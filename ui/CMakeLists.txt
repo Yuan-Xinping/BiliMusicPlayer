@@ -44,7 +44,7 @@ target_sources(ui PRIVATE
     resources.qrc
     themes/themes.qrc
     pages/LibraryPage.h 
-    pages/LibraryPage.cpp)
+    pages/LibraryPage.cpp "components/Toast.h" "components/Toast.cpp" "dialogs/PlaylistDialog.h" "dialogs/PlaylistDialog.cpp")
 
 find_package(Qt6 REQUIRED COMPONENTS Network)
 

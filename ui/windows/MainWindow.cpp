@@ -14,12 +14,21 @@
 #include "../../service/PlaybackService.h"
 #include "../../common/PlaybackMode.h"
 #include "../../common/PlaybackState.h"
+#include "../components/Toast.h"
+#include "../dialogs/PlaylistDialog.h"
 #include <QApplication>
 #include <QScreen>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
 #include <QGraphicsDropShadowEffect>
+#include <QShortcut>
+#include <QKeySequence>
+#include <QLineEdit>
+#include <QTextEdit>
+#include <QPlainTextEdit>
+#include <QAbstractSpinBox>
+#include <QComboBox>
 
 namespace {
     // UI(0,1,2,3) -> Service PlaybackMode
@@ -42,6 +51,11 @@ namespace {
         default: return 0;
         }
     }
+
+    // 开关：拖动中是否启用 200ms 预览 seek
+    constexpr bool kEnableSliderPreviewSeek = true;
+    constexpr int  kVolumeStep = 5;
+    constexpr qint64 kSeekStepMs = 10000;
 }
 
 MainWindow::MainWindow(QWidget* parent)
@@ -106,8 +120,18 @@ void MainWindow::setupPlaybackBar()
     // —— 连接 UI -> Service 控制 —— //
     PlaybackService* ps = &PlaybackService::instance();
 
-    connect(m_playbackBar, &PlaybackBar::playPauseClicked, this, [ps]() {
+    connect(m_playbackBar, &PlaybackBar::playPauseClicked, this, [this, ps]() {
+        qDebug() << "[UI] Play/Pause button clicked."
+            << "state(before)=" << (int)ps->getPlaybackState()
+            << "vol=" << ps->getVolume()
+            << "posMs=" << ps->getCurrentPosition();
         ps->togglePlayPause();
+        QTimer::singleShot(80, this, [ps]() {
+            qDebug() << "[UI] After button toggle."
+                << "state=" << (int)ps->getPlaybackState()
+                << "vol=" << ps->getVolume()
+                << "posMs=" << ps->getCurrentPosition();
+            });
         });
     connect(m_playbackBar, &PlaybackBar::previousClicked, this, [ps]() {
         ps->playPrevious();
@@ -115,14 +139,52 @@ void MainWindow::setupPlaybackBar()
     connect(m_playbackBar, &PlaybackBar::nextClicked, this, [ps]() {
         ps->playNext();
         });
+
+    // 拖动松开时一次性 seek
     connect(m_playbackBar, &PlaybackBar::positionChanged, this, [ps](int sec) {
         ps->seek(static_cast<qint64>(sec) * 1000);
         });
+    // 拖动中节流预览（可选）
+    if (kEnableSliderPreviewSeek) {
+        connect(m_playbackBar, &PlaybackBar::positionPreview, this, [ps](int sec) {
+            ps->seek(static_cast<qint64>(sec) * 1000);
+            });
+    }
+
     connect(m_playbackBar, &PlaybackBar::volumeChanged, this, [ps](int vol) {
         ps->setVolume(vol);
         });
     connect(m_playbackBar, &PlaybackBar::playModeChanged, this, [ps](int uiMode) {
         ps->setPlaybackMode(toPlaybackMode(uiMode));
+        });
+    // 📃 播放列表按钮
+    connect(m_playbackBar, &PlaybackBar::playlistClicked, this, [this, ps]() {
+        if (!m_playlistDialog) {
+            m_playlistDialog = new PlaylistDialog(this);
+            // 初始填充
+            m_playlistDialog->setPlaylist(ps->getCurrentPlaylist(), ps->getCurrentSongIndex());
+            m_playlistDialog->setQueue(ps->getPlaybackQueue());
+            // 变化监听
+            connect(ps, &PlaybackService::playlistChanged, this, [this, ps](const QList<Song>& pl) {
+                if (m_playlistDialog) m_playlistDialog->setPlaylist(pl, ps->getCurrentSongIndex());
+                });
+            connect(ps, &PlaybackService::currentSongIndexChanged, this, [this, ps](int idx) {
+                if (m_playlistDialog) m_playlistDialog->setPlaylist(ps->getCurrentPlaylist(), idx);
+                });
+            connect(ps, &PlaybackService::playbackQueueChanged, this, [this](const QList<Song>& q) {
+                if (m_playlistDialog) m_playlistDialog->setQueue(q);
+                });
+        }
+        if (m_playlistDialog->isVisible()) {
+            m_playlistDialog->hide();
+        }
+        else {
+            // 挂靠主窗右下
+            QPoint p = this->geometry().bottomRight() - QPoint(m_playlistDialog->width() + 20, m_playlistDialog->height() + 20);
+            m_playlistDialog->move(p);
+            m_playlistDialog->show();
+            m_playlistDialog->raise();
+        }
         });
 
     // —— 连接 Service -> UI 状态 —— //
@@ -131,10 +193,8 @@ void MainWindow::setupPlaybackBar()
         });
     connect(ps, &PlaybackService::currentSongChanged, this, [this](const Song& s) {
         m_playbackBar->setSong(s);
-        // 优先用元数据的总时长（秒），随后由 durationChanged 精确覆盖
         if (s.getDurationSeconds() > 0)
             m_playbackBar->setDuration(static_cast<int>(s.getDurationSeconds()));
-        // 切歌重置进度显示
         m_playbackBar->setPosition(0);
         });
     connect(ps, &PlaybackService::positionChanged, this, [this](qint64 posMs) {
@@ -146,12 +206,13 @@ void MainWindow::setupPlaybackBar()
     connect(ps, &PlaybackService::volumeChanged, this, [this](int v) {
         m_playbackBar->setVolume(v);
         });
-    connect(ps, &PlaybackService::playbackModeChanged, this, [this](PlaybackMode m) {
-        m_playbackBar->setPlayMode(toUiMode(m));
+    connect(ps, &PlaybackService::playbackStateChanged, this, [this](PlaybackState st) {
+        qDebug() << "[UI] playbackStateChanged ->" << (int)st;
+        m_playbackBar->setPlaybackState(st == PlaybackState::Playing);
         });
-    connect(ps, &PlaybackService::error, this, [](const QString& err) {
+    connect(ps, &PlaybackService::error, this, [this](const QString& err) {
         qWarning() << "Playback error:" << err;
-        // 可进一步加 Toast 提示
+        Toast::showToast(this, err);
         });
 
     // —— 初始同步（从服务拉取当前状态） —— //
@@ -168,6 +229,89 @@ void MainWindow::setupPlaybackBar()
             m_playbackBar->setDuration(static_cast<int>(cur.getDurationSeconds()));
         }
     }
+
+    // —— 键盘快捷键 —— //
+    auto isTextInput = []() -> bool {
+        QWidget* fw = QApplication::focusWidget();
+        return fw && (qobject_cast<QLineEdit*>(fw)
+            || qobject_cast<QTextEdit*>(fw)
+            || qobject_cast<QPlainTextEdit*>(fw)
+            || qobject_cast<QAbstractSpinBox*>(fw)
+            || (qobject_cast<QComboBox*>(fw) && static_cast<QComboBox*>(fw)->isEditable()));
+        };
+
+    // Space：播放/暂停（避免文本输入中触发；关闭连发）
+    auto* shSpace = new QShortcut(QKeySequence(Qt::Key_Space), this);
+    shSpace->setContext(Qt::ApplicationShortcut);
+    shSpace->setAutoRepeat(false);
+    connect(shSpace, &QShortcut::activated, this, [this, ps, isTextInput]() {
+        QWidget* fw = QApplication::focusWidget();
+        qDebug() << "[Hotkey] Space activated."
+            << "isTextInput=" << isTextInput()
+            << "focus=" << (fw ? fw->metaObject()->className() : "null")
+            << "state(before)=" << (int)ps->getPlaybackState()
+            << "vol=" << ps->getVolume()
+            << "posMs=" << ps->getCurrentPosition();
+        if (isTextInput()) return;
+        ps->togglePlayPause();
+        QTimer::singleShot(80, this, [ps]() {
+            qDebug() << "[Hotkey] After toggle."
+                << "state=" << (int)ps->getPlaybackState()
+                << "vol=" << ps->getVolume()
+                << "posMs=" << ps->getCurrentPosition();
+            });
+        });
+
+    // Ctrl+→/←：下一首/上一首
+    auto* shNext = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Right), this);
+    shNext->setContext(Qt::ApplicationShortcut);
+    connect(shNext, &QShortcut::activated, this, [ps, isTextInput]() {
+        if (isTextInput()) return;
+        ps->playNext();
+        });
+
+    auto* shPrev = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Left), this);
+    shPrev->setContext(Qt::ApplicationShortcut);
+    connect(shPrev, &QShortcut::activated, this, [ps, isTextInput]() {
+        if (isTextInput()) return;
+        ps->playPrevious();
+        });
+
+    // Ctrl+↑/↓：音量 ±5
+    constexpr int  kVolumeStep = 5;
+    auto clamp = [](int v, int lo, int hi) { return std::max(lo, std::min(v, hi)); };
+
+    auto* shVolUp = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Up), this);
+    shVolUp->setContext(Qt::ApplicationShortcut);
+    connect(shVolUp, &QShortcut::activated, this, [ps, clamp, isTextInput]() {
+        if (isTextInput()) return;
+        ps->setVolume(clamp(ps->getVolume() + kVolumeStep, 0, 100));
+        });
+
+    auto* shVolDown = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Down), this);
+    shVolDown->setContext(Qt::ApplicationShortcut);
+    connect(shVolDown, &QShortcut::activated, this, [ps, clamp, isTextInput]() {
+        if (isTextInput()) return;
+        ps->setVolume(clamp(ps->getVolume() - kVolumeStep, 0, 100));
+        });
+
+    // Ctrl+Shift+→/←：±10s 跳转
+    constexpr qint64 kSeekStepMs = 10000;
+    auto* shSeekForward = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Right), this);
+    shSeekForward->setContext(Qt::ApplicationShortcut);
+    connect(shSeekForward, &QShortcut::activated, this, [ps, isTextInput]() {
+        if (isTextInput()) return;
+        ps->seek(ps->getCurrentPosition() + kSeekStepMs);
+        });
+
+    auto* shSeekBackward = new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Left), this);
+    shSeekBackward->setContext(Qt::ApplicationShortcut);
+    connect(shSeekBackward, &QShortcut::activated, this, [ps, isTextInput]() {
+        if (isTextInput()) return;
+        qint64 pos = ps->getCurrentPosition() - kSeekStepMs;
+        ps->seek(pos < 0 ? 0 : pos);
+        });
+
 }
 
 void MainWindow::setupStyles()

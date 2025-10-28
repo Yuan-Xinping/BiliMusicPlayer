@@ -1,4 +1,3 @@
-// AppConfig.cpp
 #include "AppConfig.h"
 #include <QFile>
 #include <QJsonDocument>
@@ -7,7 +6,7 @@
 #include <QStandardPaths>
 #include <QCoreApplication>
 #include <QDebug>
-
+#include <QJsonArray>
 QStringList AppConfig::s_validThemes = { "dark", "light" };
 
 static inline bool presetEq(const QString& a, const char* b) {
@@ -161,7 +160,7 @@ void AppConfig::setDefaultValues() {
 
     // 下载设置
     m_defaultQualityPreset = "high_quality_mp3";
-    m_defaultAudioFormat = formatForPreset(m_defaultQualityPreset); // 由预设推导
+    m_defaultAudioFormat = formatForPreset(m_defaultQualityPreset);
     m_maxConcurrentDownloads = 3;
 
     // 数据库路径
@@ -177,6 +176,15 @@ void AppConfig::setDefaultValues() {
     // 高级设置
     m_proxyEnabled = false;
     m_proxyUrl = "";
+
+    // 播放默认
+    m_playerVolume = 70;
+    m_playerPlaybackMode = 0; // 顺序
+    m_resumeOnStartup = true;
+    m_lastSongId.clear();
+    m_lastPositionMs = 0;
+    m_lastPlaylistIds.clear();
+    m_lastQueueIds.clear();
 }
 
 QString AppConfig::getConfigFilePath() const {
@@ -207,23 +215,11 @@ QString AppConfig::getBundledBinaryPath(const QString& binaryName) const {
 }
 
 void AppConfig::loadFromJson(const QJsonObject& json) {
-    if (json.contains("downloadPath")) {
-        m_downloadPath = json["downloadPath"].toString();
-    }
+    if (json.contains("downloadPath"))         m_downloadPath = json["downloadPath"].toString();
+    if (json.contains("ytDlpPath"))            m_ytDlpPath = json["ytDlpPath"].toString();
+    if (json.contains("ffmpegPath"))           m_ffmpegPath = json["ffmpegPath"].toString();
+    if (json.contains("defaultQualityPreset")) m_defaultQualityPreset = json["defaultQualityPreset"].toString();
 
-    if (json.contains("ytDlpPath")) {
-        m_ytDlpPath = json["ytDlpPath"].toString();
-    }
-
-    if (json.contains("ffmpegPath")) {
-        m_ffmpegPath = json["ffmpegPath"].toString();
-    }
-
-    if (json.contains("defaultQualityPreset")) {
-        m_defaultQualityPreset = json["defaultQualityPreset"].toString();
-    }
-
-    // —— 关键：用预设推导应有的格式，并在存在不一致时修正 —— //
     const AudioFormat expected = formatForPreset(m_defaultQualityPreset);
     if (json.contains("defaultAudioFormat")) {
         m_defaultAudioFormat = static_cast<AudioFormat>(json["defaultAudioFormat"].toInt());
@@ -239,36 +235,30 @@ void AppConfig::loadFromJson(const QJsonObject& json) {
         m_defaultAudioFormat = expected;
     }
 
-    if (json.contains("maxConcurrentDownloads")) {
-        m_maxConcurrentDownloads = json["maxConcurrentDownloads"].toInt();
-    }
-
-    if (json.contains("databasePath")) {
-        m_databasePath = json["databasePath"].toString();
-    }
+    if (json.contains("maxConcurrentDownloads")) m_maxConcurrentDownloads = json["maxConcurrentDownloads"].toInt();
+    if (json.contains("databasePath"))           m_databasePath = json["databasePath"].toString();
 
     if (json.contains("theme")) {
         QString loadedTheme = json["theme"].toString();
-        if (isValidTheme(loadedTheme)) {
-            m_theme = loadedTheme;
-        }
+        if (isValidTheme(loadedTheme))  m_theme = loadedTheme;
         else {
             qWarning() << "⚠️ 配置文件中的主题无效：" << loadedTheme;
             m_theme = "dark";
         }
     }
 
-    if (json.contains("fontSize")) {
-        m_fontSize = json["fontSize"].toInt();
-    }
+    if (json.contains("fontSize"))      m_fontSize = json["fontSize"].toInt();
+    if (json.contains("proxyEnabled"))  m_proxyEnabled = json["proxyEnabled"].toBool();
+    if (json.contains("proxyUrl"))      m_proxyUrl = json["proxyUrl"].toString();
 
-    if (json.contains("proxyEnabled")) {
-        m_proxyEnabled = json["proxyEnabled"].toBool();
-    }
-
-    if (json.contains("proxyUrl")) {
-        m_proxyUrl = json["proxyUrl"].toString();
-    }
+    // 播放持久化
+    if (json.contains("playerVolume"))        m_playerVolume = qBound(0, json["playerVolume"].toInt(), 100);
+    if (json.contains("playerPlaybackMode"))  m_playerPlaybackMode = qBound(0, json["playerPlaybackMode"].toInt(), 3);
+    if (json.contains("resumeOnStartup"))    m_resumeOnStartup = json["resumeOnStartup"].toBool();
+    if (json.contains("lastSongId"))         m_lastSongId = json["lastSongId"].toString();
+    if (json.contains("lastPositionMs"))     m_lastPositionMs = static_cast<qint64>(json["lastPositionMs"].toDouble());
+    if (json.contains("lastPlaylistIds"))    for (auto v : json["lastPlaylistIds"].toArray()) m_lastPlaylistIds << v.toString();
+    if (json.contains("lastQueueIds"))       for (auto v : json["lastQueueIds"].toArray()) m_lastQueueIds << v.toString();
 }
 
 void AppConfig::saveToJson(QJsonObject& json) const {
@@ -283,6 +273,19 @@ void AppConfig::saveToJson(QJsonObject& json) const {
     json["fontSize"] = m_fontSize;
     json["proxyEnabled"] = m_proxyEnabled;
     json["proxyUrl"] = m_proxyUrl;
+
+    // 播放持久化
+    json["playerVolume"] = m_playerVolume;
+    json["playerPlaybackMode"] = m_playerPlaybackMode;
+    json["resumeOnStartup"] = m_resumeOnStartup;
+    json["lastSongId"] = m_lastSongId;
+    json["lastPositionMs"] = static_cast<double>(m_lastPositionMs);
+    {
+        QJsonArray arr; for (auto& id : m_lastPlaylistIds) arr.append(id); json["lastPlaylistIds"] = arr;
+    }
+    {
+        QJsonArray arr; for (auto& id : m_lastQueueIds) arr.append(id); json["lastQueueIds"] = arr;
+    }
 }
 
 bool AppConfig::isValidTheme(const QString& theme) const {
@@ -305,6 +308,16 @@ QString AppConfig::getTheme() const { return m_theme; }
 int AppConfig::getFontSize() const { return m_fontSize; }
 bool AppConfig::getProxyEnabled() const { return m_proxyEnabled; }
 QString AppConfig::getProxyUrl() const { return m_proxyUrl; }
+bool AppConfig::getResumeOnStartup() const { return m_resumeOnStartup; }
+QString AppConfig::getLastSongId() const { return m_lastSongId; }
+qint64 AppConfig::getLastPositionMs() const { return m_lastPositionMs; }
+QStringList AppConfig::getLastPlaylistIds() const { return m_lastPlaylistIds; }
+QStringList AppConfig::getLastQueueIds() const { return m_lastQueueIds; }
+// 播放相关
+int  AppConfig::getPlayerVolume() const { return m_playerVolume; }
+int  AppConfig::getPlayerPlaybackMode() const { return m_playerPlaybackMode; }
+void AppConfig::setPlayerVolume(int volume) { m_playerVolume = qBound(0, volume, 100); }
+void AppConfig::setPlayerPlaybackMode(int mode) { m_playerPlaybackMode = qBound(0, mode, 3); }
 
 // Setters
 void AppConfig::setDownloadPath(const QString& path) { m_downloadPath = path; }
@@ -313,7 +326,7 @@ void AppConfig::setFfmpegPath(const QString& path) { m_ffmpegPath = path; }
 void AppConfig::setDefaultQualityPreset(const QString& preset) {
     if (m_defaultQualityPreset == preset) return;
     m_defaultQualityPreset = preset;
-    m_defaultAudioFormat = formatForPreset(preset); 
+    m_defaultAudioFormat = formatForPreset(preset);
     qDebug() << "AppConfig: preset ->" << preset
         << ", format ->" << static_cast<int>(m_defaultAudioFormat);
 }
@@ -335,3 +348,8 @@ void AppConfig::setTheme(const QString& theme) {
         qWarning() << "❌ 无效的主题名称：" << theme;
     }
 }
+void AppConfig::setResumeOnStartup(bool e) { m_resumeOnStartup = e; }
+void AppConfig::setLastSongId(const QString& id) { m_lastSongId = id; }
+void AppConfig::setLastPositionMs(qint64 ms) { m_lastPositionMs = qMax<qint64>(0, ms); }
+void AppConfig::setLastPlaylistIds(const QStringList& ids) { m_lastPlaylistIds = ids; }
+void AppConfig::setLastQueueIds(const QStringList& ids) { m_lastQueueIds = ids; }

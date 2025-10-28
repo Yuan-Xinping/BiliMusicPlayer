@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QTimer>
 #include "../themes/ThemeManager.h"
+#include "../dialogs/PlaylistDialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -57,7 +58,7 @@ private:
 
     // ViewModel 实例
     DownloadViewModel* m_downloadViewModel = nullptr;
-
+    PlaylistDialog* m_playlistDialog = nullptr;
     // 应用实例
     BiliMusicPlayerApp* m_app = nullptr;
 

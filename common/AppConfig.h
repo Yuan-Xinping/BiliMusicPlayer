@@ -1,4 +1,3 @@
-// AppConfig.h
 #pragma once
 #include <QObject>
 #include <QString>
@@ -28,11 +27,17 @@ public:
     bool getProxyEnabled() const;
     QString getProxyUrl() const;
 
+    // 播放相关（持久化）
+    int  getPlayerVolume() const;        // 0-100
+    int  getPlayerPlaybackMode() const;  // 0 顺序、1 随机、2 单曲、3 列表
+    void setPlayerVolume(int volume);
+    void setPlayerPlaybackMode(int mode);
+
     // Setters
     void setDownloadPath(const QString& path);
     void setYtDlpPath(const QString& path);
     void setFfmpegPath(const QString& path);
-    void setDefaultQualityPreset(const QString& preset); 
+    void setDefaultQualityPreset(const QString& preset);
     void setDefaultAudioFormat(AudioFormat format);
     void setMaxConcurrentDownloads(int count);
     void setDatabasePath(const QString& path);
@@ -40,6 +45,17 @@ public:
     void setFontSize(int size);
     void setProxyEnabled(bool enabled);
     void setProxyUrl(const QString& url);
+    // 会话恢复
+    bool getResumeOnStartup() const;
+    void setResumeOnStartup(bool enabled);
+    QString getLastSongId() const;
+    void setLastSongId(const QString& id);
+    qint64 getLastPositionMs() const;
+    void setLastPositionMs(qint64 ms);
+    QStringList getLastPlaylistIds() const;
+    void setLastPlaylistIds(const QStringList& ids);
+    QStringList getLastQueueIds() const;
+    void setLastQueueIds(const QStringList& ids);
 
     bool isValidTheme(const QString& theme) const;
     static QStringList availableThemes();
@@ -82,4 +98,14 @@ private:
     // 高级设置
     bool m_proxyEnabled = false;
     QString m_proxyUrl;
+
+    // 播放持久化
+    int m_playerVolume = 70;         // 0-100
+    int m_playerPlaybackMode = 0;    // 0 顺序
+    bool m_resumeOnStartup = true;
+    QString m_lastSongId;
+    qint64 m_lastPositionMs = 0;
+    QStringList m_lastPlaylistIds;
+    QStringList m_lastQueueIds;
+    
 };

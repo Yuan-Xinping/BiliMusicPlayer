@@ -1,4 +1,3 @@
-// core/PlaybackService.h
 #pragma once
 #include <QObject>
 #include <QList>
@@ -66,6 +65,11 @@ public:
     void playSmartNext();      // 使用智能逻辑播放下一首
     void playSmartPrevious();  // 使用智能逻辑播放上一首
 
+    // A-B 循环
+    void setLoopA(qint64 ms);
+    void setLoopB(qint64 ms);
+    void clearLoopAB();
+
 signals:
     // 原有状态变化信号
     void playbackStateChanged(PlaybackState state);
@@ -80,11 +84,14 @@ signals:
     // 错误信号
     void error(const QString& errorMessage);
 
-    // 🆕 Phase 4.2: 新增信号
+    // 扩展信号
     void playbackQueueChanged(const QList<Song>& queue);
     void smartPlaylistGenerated(const QList<Song>& playlist);
     void playbackHistoryChanged();
     void playbackRecordAdded(const PlaybackRecord& record);
+
+    // A-B 循环点变化
+    void loopABChanged(qint64 a, qint64 b);
 
 private:
     class Impl;
