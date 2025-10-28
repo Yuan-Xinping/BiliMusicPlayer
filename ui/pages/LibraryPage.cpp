@@ -18,6 +18,8 @@
 #include <QAbstractItemModel>  
 #include <QMetaObject>
 #include <QResizeEvent>        
+#include <QSet>
+#include "../../service/PlaybackService.h"
 
 static const char* kMyMusicId = "";        
 static const char* kMyMusicText = "我的音乐";
@@ -447,6 +449,53 @@ void LibraryPage::onSongTableContextMenuRequested(const QPoint& pos) {
         QAction* actRm = menu.addAction("从当前歌单移除");
         connect(actRm, &QAction::triggered, this, [=] { actRemoveFromCurrentPlaylist(sids); });
     }
+
+    menu.addSeparator();
+
+    // 添加到播放队列（两种方式）
+    QAction* actQNext = menu.addAction("添加到播放队列（下一首）");
+    connect(actQNext, &QAction::triggered, this, [=] {
+        const QList<Song> view = songsInViewOrder();
+        QSet<QString> idset; idset.reserve(sids.size());
+        for (const auto& id : sids) idset.insert(id);
+
+        QList<Song> picked; picked.reserve(idset.size());
+        for (const auto& s : view) if (idset.contains(s.getId())) picked << s;
+        if (picked.isEmpty()) return;
+
+        auto& ps = PlaybackService::instance();
+        // 逆序插入，保证“第一首选中”的最先播放
+        for (int i = picked.size() - 1; i >= 0; --i) {
+            ps.addNextToQueue(picked[i]);
+        }
+        showToast(QString("已添加到播放队列（下一首） • %1 首").arg(picked.size()));
+        });
+
+    QAction* actQTail = menu.addAction("添加到播放队列（末尾）");
+    connect(actQTail, &QAction::triggered, this, [=] {
+        const QList<Song> view = songsInViewOrder();
+        QSet<QString> idset; idset.reserve(sids.size());
+        for (const auto& id : sids) idset.insert(id);
+
+        QList<Song> picked; picked.reserve(idset.size());
+        for (const auto& s : view) if (idset.contains(s.getId())) picked << s;
+        if (picked.isEmpty()) return;
+
+        auto& ps = PlaybackService::instance();
+        // 使用仅有的 API 实现“追加到末尾”：
+        // 最终队列 = 原队列 + 选中歌曲。要用 addNextToQueue 实现：
+        // 步骤：保存原队列 → 清空 → 先倒序压入 picked（让它们暂时在前）→ 再倒序压入旧队列（恢复到前部）
+        const QList<Song> oldQ = ps.getPlaybackQueue();
+        ps.clearPlaybackQueue();
+
+        for (int i = picked.size() - 1; i >= 0; --i) {
+            ps.addNextToQueue(picked[i]);         // 暂时放到前面
+        }
+        for (int i = oldQ.size() - 1; i >= 0; --i) {
+            ps.addNextToQueue(oldQ[i]);           // 恢复原队列到前部
+        }
+        showToast(QString("已添加到播放队列（末尾） • %1 首").arg(picked.size()));
+        });
 
     menu.addSeparator();
 
