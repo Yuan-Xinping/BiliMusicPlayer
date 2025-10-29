@@ -8,6 +8,24 @@
 #include <QFileInfo>
 #include <QDebug>
 #include <QUuid>
+#include <QRegularExpression>
+#include "../common/AppConfig.h"     
+#include "ConcurrentDownloadManager.h" 
+
+// 提取 BV/av 号（或从 URL 中提取）
+// 若传入已是 "BV..." 或 "av..." 则直接返回
+static QString extractBvId(const QString& idOrUrl) {
+    if (idOrUrl.startsWith("BV") || idOrUrl.startsWith("av")) {
+        return idOrUrl;
+    }
+    // 尝试从 URL 中提取 /video/<id>
+    QRegularExpression rx(R"(/video/([^/?#]+))");
+    QRegularExpressionMatch m = rx.match(idOrUrl);
+    if (m.hasMatch()) {
+        return m.captured(1);
+    }
+    return QString();
+}
 
 LibraryService::LibraryService(QObject* parent)
     : QObject(parent)
@@ -15,10 +33,14 @@ LibraryService::LibraryService(QObject* parent)
     , m_playlistRepository(new PlaylistRepository(this))
 {
     qDebug() << "✅ LibraryService 初始化完成";
+
+    // 连接并行下载完成信号：将完成的歌曲加入对应歌单
+    auto& cdm = ConcurrentDownloadManager::instance();
+    connect(&cdm, &ConcurrentDownloadManager::taskCompleted,
+        this, &LibraryService::onConcurrentTaskCompleted);
 }
 
 // ========== 歌曲管理 ==========
-
 bool LibraryService::updateSongInfo(const QString& id, const QString& title, const QString& artist) {
     if (!validateSongId(id)) {
         emit operationFailed("更新歌曲", "无效的歌曲ID");
@@ -106,7 +128,6 @@ bool LibraryService::toggleFavorite(const QString& id) {
 }
 
 // ========== 歌曲查询 ==========
-
 QList<Song> LibraryService::getAllSongs() {
     QList<Song> songs = m_songRepository->findAll();
     qDebug() << "📚 LibraryService: 获取所有歌曲，共" << songs.size() << "首";
@@ -134,7 +155,6 @@ int LibraryService::getSongCount() {
 }
 
 // ========== 歌单管理 ==========
-
 QString LibraryService::createPlaylist(const QString& name, const QString& description) {
     QString sanitizedName = sanitizePlaylistName(name);
 
@@ -243,7 +263,6 @@ bool LibraryService::clearPlaylist(const QString& id) {
 }
 
 // ========== 歌单-歌曲关联 ==========
-
 int LibraryService::addSongsToPlaylist(const QString& playlistId, const QStringList& songIds) {
     if (!validatePlaylistId(playlistId)) {
         emit operationFailed("添加歌曲到歌单", "无效的歌单ID");
@@ -303,7 +322,6 @@ int LibraryService::removeSongsFromPlaylist(const QString& playlistId, const QSt
 }
 
 // ========== 歌单查询 ==========
-
 QList<Playlist> LibraryService::getAllPlaylists() {
     QList<Playlist> playlists = m_playlistRepository->findAll();
     qDebug() << "📋 LibraryService: 获取所有歌单，共" << playlists.size() << "个";
@@ -326,8 +344,7 @@ bool LibraryService::isSongInPlaylist(const QString& playlistId, const QString& 
     return m_playlistRepository->isSongInPlaylist(playlistId, songId);
 }
 
-// ========== 导出功能 ==========
-
+// ========== 导出/导入功能 ==========
 QJsonObject LibraryService::ExportData::toJson() const {
     QJsonObject root;
     root["version"] = version;
@@ -469,6 +486,91 @@ bool LibraryService::validateExportFile(const QString& filePath) {
 
     ExportData data = parseImportFile(filePath);
     return !data.songs.isEmpty();
+}
+
+bool LibraryService::importAndDownloadMissingSongs(const QString& playlistId, const QList<Song>& songs) {
+    if (!validatePlaylistId(playlistId)) {
+        emit operationFailed("导入并下载", "无效的歌单ID");
+        return false;
+    }
+    if (songs.isEmpty()) {
+        qDebug() << "LibraryService: 导入数据为空，跳过";
+        return true;
+    }
+
+    auto& app = AppConfig::instance();
+    auto& cdm = ConcurrentDownloadManager::instance();
+
+    // 同步并发配置（尊重设置页）
+    ConcurrentDownloadConfig cfg = cdm.getConfig();
+    int maxC = app.getMaxConcurrentDownloads();
+    if (maxC > 0 && cfg.maxConcurrentDownloads != maxC) {
+        cfg.maxConcurrentDownloads = maxC;
+        cdm.setConfig(cfg);
+        qDebug() << "LibraryService: 已设置并发数为" << maxC;
+    }
+
+    // 生成下载选项（尊重设置的预设与格式）
+    DownloadOptions opt = DownloadOptions::createPreset(app.getDefaultQualityPreset());
+    opt.audioFormat = app.getDefaultAudioFormat();
+
+    QStringList toDownloadIds;
+    int addedExisting = 0;
+
+    for (const auto& s : songs) {
+        const QString id = extractBvId(s.getBilibiliUrl().isEmpty() ? s.getId() : s.getBilibiliUrl());
+        if (id.isEmpty()) {
+            qWarning() << "LibraryService: 跳过无法识别的视频标识:" << s.getTitle();
+            continue;
+        }
+
+        if (m_songRepository->exists(id)) {
+            // 已在本地，直接加入歌单（INSERT OR IGNORE）
+            if (m_playlistRepository->addSongToPlaylist(playlistId, id)) {
+                addedExisting++;
+            }
+        }
+        else {
+            toDownloadIds << id;
+        }
+    }
+
+    if (addedExisting > 0) {
+        emit songsAddedToPlaylist(playlistId, addedExisting);
+        qDebug() << "LibraryService: 已将" << addedExisting << "首本地已存在的歌曲加入歌单";
+    }
+
+    if (!toDownloadIds.isEmpty()) {
+        QStringList tids = cdm.addBatchTasks(toDownloadIds, opt);
+        for (const QString& tid : tids) {
+            m_taskToPlaylist.insert(tid, playlistId);
+        }
+        qDebug() << "LibraryService: 已提交下载任务" << tids.size() << "个，待完成后将自动入歌单";
+    }
+    else {
+        qDebug() << "LibraryService: 无需下载的新歌曲";
+    }
+
+    return true;
+}
+
+void LibraryService::onConcurrentTaskCompleted(const QString& taskId, const Song& song) {
+    // 找到该任务对应的目标歌单
+    const QString pid = m_taskToPlaylist.take(taskId);
+    if (pid.isEmpty()) {
+        // 不是导入路径提交的任务，忽略
+        return;
+    }
+    if (song.getId().isEmpty()) {
+        qWarning() << "LibraryService: taskCompleted 但 song.id 为空";
+        return;
+    }
+
+    // 将完成的歌曲加入歌单
+    if (m_playlistRepository->addSongToPlaylist(pid, song.getId())) {
+        emit songsAddedToPlaylist(pid, 1);
+        qDebug() << "LibraryService: 任务" << taskId << "完成，已将歌曲加入歌单";
+    }
 }
 
 // ========== 辅助方法 ==========

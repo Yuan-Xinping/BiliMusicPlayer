@@ -10,7 +10,6 @@
 class LibraryViewModel : public QObject {
     Q_OBJECT
 
-        // Q_PROPERTY 用于 QML 绑定（可选，如果不用QML可以去掉）
         Q_PROPERTY(int songCount READ songCount NOTIFY songCountChanged)
         Q_PROPERTY(int playlistCount READ playlistCount NOTIFY playlistCountChanged)
 
@@ -131,6 +130,10 @@ public:
      */
     Q_INVOKABLE LibraryService::ExportData parseImportFile(const QString& filePath);
 
+    /**
+     * @brief 导入并下载缺失的歌曲
+	 */
+    Q_INVOKABLE bool importAndDownloadMissingSongs(const QString& playlistId, const QList<Song>& songs);
     // ========== 统计信息 ==========
 
     int songCount() const;

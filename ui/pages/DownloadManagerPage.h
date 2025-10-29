@@ -32,6 +32,7 @@ private slots:
     void onTaskCompleted(const QString& identifier, const Song& song);
     void onTaskFailed(const QString& identifier, const QString& error);
     void onTaskSkipped(const QString& identifier, const Song& existingSong);
+    void onBatchDownloadClicked();
 
 private:
     void setupUI();

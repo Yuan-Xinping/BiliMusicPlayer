@@ -41,6 +41,11 @@ ConcurrentDownloadManager::~ConcurrentDownloadManager() {
     QThreadPool::globalInstance()->waitForDone(30000); // 最多等待30秒
 }
 
+ConcurrentDownloadManager& ConcurrentDownloadManager::instance() {
+    static ConcurrentDownloadManager inst;
+    return inst;
+}
+
 void ConcurrentDownloadManager::setConfig(const ConcurrentDownloadConfig& config) {
     if (!config.isValid()) {
         qWarning() << "ConcurrentDownloadManager: 无效的配置";
@@ -238,12 +243,10 @@ int ConcurrentDownloadManager::getPendingTaskCount() const {
 }
 
 int ConcurrentDownloadManager::getCompletedTaskCount() const {
-    QMutexLocker locker(&m_tasksMutex);
     return getTasksByStatus(DownloadTaskState::Status::Completed).size();
 }
 
 int ConcurrentDownloadManager::getFailedTaskCount() const {
-    QMutexLocker locker(&m_tasksMutex);
     return getTasksByStatus(DownloadTaskState::Status::Failed).size();
 }
 

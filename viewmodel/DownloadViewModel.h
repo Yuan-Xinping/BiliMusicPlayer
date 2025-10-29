@@ -1,3 +1,4 @@
+// viewmodel/DownloadViewModel.h
 #pragma once
 #include <QObject>
 #include <QMap>
@@ -40,6 +41,7 @@ public:
     Q_INVOKABLE void cancelDownload();
     Q_INVOKABLE void cancelAllTasks();
     Q_INVOKABLE void openDownloadFolder();
+    Q_INVOKABLE int addConcurrentBatchTasks(const QStringList& identifiers, const QString& preset);
 
     // === 查询方法 ===
     Q_INVOKABLE bool isDownloading() const;
@@ -49,6 +51,9 @@ public:
     // 配置相关
     Q_INVOKABLE void refreshConfig();
     Q_INVOKABLE QString getDownloadPath() const;
+
+    // 页面打开或切到“下载队列”Tab时，用它补建并行任务的UI条目
+    Q_INVOKABLE void syncConcurrentTasksToUI();
 
 signals:
     // UI 状态信号
@@ -83,6 +88,8 @@ private slots:
 private:
     void updateStatusText();
     void connectServiceSignals();
+    // 订阅并行下载管理器的事件并转发给 UI
+    void connectConcurrentSignals();
 
     // Service 层引用
     DownloadService* m_service;

@@ -1,3 +1,4 @@
+// ui/pages/DownloadManagerPage.cpp
 #include "DownloadManagerPage.h"
 #include "../components/DownloadTaskItem.h"
 #include "../../common/AppConfig.h"
@@ -13,6 +14,8 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QInputDialog>
+#include <QRegularExpression>
 
 DownloadManagerPage::DownloadManagerPage(DownloadViewModel* viewModel, QWidget* parent)
     : QWidget(parent)
@@ -25,6 +28,9 @@ DownloadManagerPage::DownloadManagerPage(DownloadViewModel* viewModel, QWidget* 
     setupUI();
     setupConnections();
     loadDefaultSettings();
+
+    // 页面就绪后，同步现有并行任务（若此时已有任务在跑）
+    m_viewModel->syncConcurrentTasksToUI();
 
     QString downloadPath = m_viewModel->getDownloadPath();
     qDebug() << "====================================";
@@ -84,7 +90,7 @@ void DownloadManagerPage::setupUI()
     qualityLayout->addWidget(m_qualityCombo);
     qualityLayout->addStretch();
 
-    // 按钮行
+    // 按钮行（不再提供“并行下载”按钮；并行数由设置页控制）
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     m_startBtn = new QPushButton("🚀 开始下载");
     m_startBtn->setObjectName("startDownloadBtn");
@@ -167,7 +173,8 @@ void DownloadManagerPage::setupConnections()
 {
     connect(m_startBtn, &QPushButton::clicked,
         this, &DownloadManagerPage::onStartDownloadClicked);
-
+    connect(m_batchDownloadBtn, &QPushButton::clicked,
+        this, &DownloadManagerPage::onBatchDownloadClicked);
     connect(m_viewModel, &DownloadViewModel::taskAdded,
         this, &DownloadManagerPage::onTaskAdded);
     connect(m_viewModel, &DownloadViewModel::taskStarted,
@@ -186,11 +193,62 @@ void DownloadManagerPage::setupConnections()
         m_statusLabel->setText(m_viewModel->statusText());
         });
 
+    // 切到“下载队列”Tab时，再同步一次并行任务（兜底）
+    connect(m_tabWidget, &QTabWidget::currentChanged, this, [this](int idx) {
+        if (m_tabWidget->tabText(idx).contains("下载队列")) {
+            m_viewModel->syncConcurrentTasksToUI();
+        }
+        });
+
     // 错误处理
     connect(m_viewModel, &DownloadViewModel::errorOccurred, this,
         [this](const QString& title, const QString& message) {
             QMessageBox::warning(this, title, message);
         });
+}
+
+void DownloadManagerPage::onBatchDownloadClicked()
+{
+    bool ok = false;
+    const QString text = QInputDialog::getMultiLineText(
+        this,
+        "📋 批量下载",
+        "每行一个 BV 号或 URL：",
+        QString(),
+        &ok
+    );
+    if (!ok) return;
+
+    // 拆分为行并清洗
+    const QStringList rawLines = text.split(QRegularExpression("[\\r\\n]+"), Qt::SkipEmptyParts);
+    QStringList identifiers;
+    identifiers.reserve(rawLines.size());
+    for (const auto& line : rawLines) {
+        const QString t = line.trimmed();
+        if (!t.isEmpty()) identifiers << t;
+    }
+
+    if (identifiers.isEmpty()) {
+        QMessageBox::information(this, "批量下载", "没有有效的输入。");
+        return;
+    }
+
+    // 获取当前音质预设（用于后续可能的策略扩展）
+    const QString preset = m_qualityCombo->currentData().toString();
+
+    // 提交到并行下载
+    const int added = m_viewModel->addConcurrentBatchTasks(identifiers, preset);
+    if (added <= 0) {
+        QMessageBox::warning(this, "批量下载", "未能提交下载任务，请检查输入。");
+        return;
+    }
+
+    QMessageBox::information(this, "批量下载",
+        QString("已提交 %1 个任务，正在并行下载。").arg(added));
+
+    // 切到“下载队列”，并兜底同步一次（防止用户错过早先 taskAdded 信号）
+    m_tabWidget->setCurrentIndex(0);
+    m_viewModel->syncConcurrentTasksToUI();
 }
 
 bool DownloadManagerPage::validateInput() const
@@ -220,15 +278,21 @@ void DownloadManagerPage::onStartDownloadClicked()
 void DownloadManagerPage::onTaskAdded(const QString& identifier)
 {
     qDebug() << "UI: 任务已添加:" << identifier;
-    addTaskToQueue(identifier);
+    if (!findTaskItem(identifier)) {
+        addTaskToQueue(identifier);
+    }
 }
 
 void DownloadManagerPage::onTaskStarted(const QString& identifier)
 {
     qDebug() << "UI: 任务开始:" << identifier;
 
-    DownloadTaskItem* item = findTaskItem(identifier);
-    if (item) {
+    // 若 UI 无条目，现场补建
+    if (!findTaskItem(identifier)) {
+        addTaskToQueue(identifier);
+    }
+
+    if (DownloadTaskItem* item = findTaskItem(identifier)) {
         item->setStatus("正在下载...");
     }
 }
@@ -238,8 +302,12 @@ void DownloadManagerPage::onTaskProgressUpdated(
     double progress,
     const QString& message)
 {
-    DownloadTaskItem* item = findTaskItem(identifier);
-    if (item) {
+    // 若 UI 无条目，现场补建
+    if (!findTaskItem(identifier)) {
+        addTaskToQueue(identifier);
+    }
+
+    if (DownloadTaskItem* item = findTaskItem(identifier)) {
         item->setProgress(progress);
         item->setStatus(message);
     }
@@ -248,6 +316,11 @@ void DownloadManagerPage::onTaskProgressUpdated(
 void DownloadManagerPage::onTaskCompleted(const QString& identifier, const Song& song)
 {
     qDebug() << "UI: 任务完成:" << song.getTitle();
+
+    // 若 UI 无条目，先补建再转历史
+    if (!findTaskItem(identifier)) {
+        addTaskToQueue(identifier);
+    }
 
     moveTaskToHistory(identifier, true);
 
@@ -265,6 +338,11 @@ void DownloadManagerPage::onTaskCompleted(const QString& identifier, const Song&
 void DownloadManagerPage::onTaskFailed(const QString& identifier, const QString& error)
 {
     qDebug() << "UI: 任务失败:" << identifier << error;
+
+    // 若 UI 无条目，先补建再转历史
+    if (!findTaskItem(identifier)) {
+        addTaskToQueue(identifier);
+    }
 
     moveTaskToHistory(identifier, false);
 
@@ -309,10 +387,10 @@ void DownloadManagerPage::addTaskToQueue(const QString& identifier)
     tempTask.identifier = identifier;
     tempTask.status = DownloadService::DownloadStatus::Idle;
 
-    DownloadTaskItem* taskItem = new DownloadTaskItem(tempTask, this);
+    auto* taskItem = new DownloadTaskItem(tempTask, this);
     m_taskItems.insert(identifier, taskItem);
 
-    QListWidgetItem* listItem = new QListWidgetItem(m_queueList);
+    auto* listItem = new QListWidgetItem(m_queueList);
     listItem->setSizeHint(taskItem->sizeHint());
     m_queueList->addItem(listItem);
     m_queueList->setItemWidget(listItem, taskItem);
@@ -377,4 +455,5 @@ void DownloadManagerPage::onSettingsChanged()
 
 void DownloadManagerPage::setupStyles()
 {
+    // 无需并行下载按钮，样式不变
 }

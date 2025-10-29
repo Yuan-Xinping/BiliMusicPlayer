@@ -147,6 +147,11 @@ LibraryService::ExportData LibraryViewModel::parseImportFile(const QString& file
     return m_libraryService->parseImportFile(filePath);
 }
 
+bool LibraryViewModel::importAndDownloadMissingSongs(const QString& playlistId, const QList<Song>& songs) {
+    qDebug() << "LibraryViewModel: 导入并并行下载缺失歌曲，歌单ID:" << playlistId << "，项目数:" << songs.size();
+    return m_libraryService->importAndDownloadMissingSongs(playlistId, songs);
+}
+
 // ========== 统计信息 ==========
 
 int LibraryViewModel::songCount() const {

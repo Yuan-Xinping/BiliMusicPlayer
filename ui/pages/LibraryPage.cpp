@@ -20,6 +20,7 @@
 #include <QResizeEvent>        
 #include <QSet>
 #include "../../service/PlaybackService.h"
+#include "../../common/AppConfig.h"
 
 static const char* kMyMusicId = "";        
 static const char* kMyMusicText = "我的音乐";
@@ -651,6 +652,9 @@ void LibraryPage::actImportPlaylist() {
         m_viewModel->addSongsToPlaylist(newId, matchedIds);
     }
 
+    // 将“未匹配到”的歌曲（或全部再次核对 BV 号）提交到并行下载
+    m_viewModel->importAndDownloadMissingSongs(newId, data.songs);
+
     reloadPlaylists();
     // 选中新歌单并显示
     for (int i = 0; i < m_sidebar->count(); ++i) {
@@ -662,10 +666,17 @@ void LibraryPage::actImportPlaylist() {
     }
     reloadSongs();
 
+    const int total = data.songs.size();
+    const int matched = matchedIds.size();
+    const int toDownload = qMax(0, total - matched);
+    const int maxC = AppConfig::instance().getMaxConcurrentDownloads();
+
     QMessageBox::information(
         this, "导入完成",
-        QString("新歌单“%1”已创建。\n已匹配到本地歌曲：%2 首。")
-        .arg(name).arg(matchedIds.size()));
+        QString("新歌单“%1”已创建。\n"
+            "已匹配到本地歌曲：%2 首。\n"
+            "已提交下载：%3 首（最大并行：%4）")
+        .arg(name).arg(matched).arg(toDownload).arg(maxC));
 }
 
 /* -------- 数据变更刷新 -------- */

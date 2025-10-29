@@ -1,3 +1,4 @@
+// service/ConcurrentDownloadManager.h
 #pragma once
 #include <QObject>
 #include <QQueue>
@@ -20,6 +21,11 @@ class ConcurrentDownloadManager : public QObject {
 public:
     explicit ConcurrentDownloadManager(QObject* parent = nullptr);
     ~ConcurrentDownloadManager();
+
+    // 🆕 全局单例（供全局复用）
+    static ConcurrentDownloadManager& instance();
+    ConcurrentDownloadManager(const ConcurrentDownloadManager&) = delete;
+    ConcurrentDownloadManager& operator=(const ConcurrentDownloadManager&) = delete;
 
     // 配置管理
     void setConfig(const ConcurrentDownloadConfig& config);
